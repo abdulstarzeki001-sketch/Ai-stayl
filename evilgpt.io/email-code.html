@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#050505">
+  <title>Sign in with Email Code — EvilGPT</title>
+  <link rel="stylesheet" href="assets/styles-CanlB1Ga.css">
+  <style>
+    :root{color-scheme:dark}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:#050505;color:#f7f7f7;font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif}
+    .glow{position:fixed;width:340px;height:340px;border-radius:50%;filter:blur(110px);opacity:.16;pointer-events:none}
+    .g1{background:#ef3038;top:8%;left:8%}.g2{background:#8d1720;bottom:8%;right:8%}
+    .wrap{position:relative;z-index:1;min-height:100vh;display:grid;place-items:center;padding:28px 18px}
+    .card{width:min(100%,440px);padding:34px 28px;border:1px solid rgba(255,255,255,.12);border-radius:22px;background:rgba(19,19,22,.88);box-shadow:0 24px 90px rgba(0,0,0,.55);backdrop-filter:blur(20px)}
+    .brand{text-align:center;margin-bottom:26px}
+    .logo{width:58px;height:58px;display:grid;place-items:center;margin:0 auto 14px;border-radius:17px;background:linear-gradient(135deg,#fa303b,#a90e1d);font-size:27px;font-weight:900;box-shadow:0 8px 35px rgba(220,30,45,.25)}
+    h1{margin:0 0 9px;font-size:27px;letter-spacing:-.7px}
+    .sub{margin:0;color:#a3a3ad;font-size:14px;line-height:1.6}
+    label{display:block;margin:20px 0 8px;font-size:13px;font-weight:600;color:#e6e6e9}
+    input{width:100%;height:48px;border-radius:10px;border:1px solid #393940;background:#0d0d10;color:#fff;padding:0 14px;font-size:16px;outline:none}
+    input:focus{border-color:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.14)}
+    input.code{text-align:center;letter-spacing:.42em;font-size:23px;font-weight:700;font-variant-numeric:tabular-nums}
+    button{width:100%;height:48px;margin-top:18px;border:0;border-radius:10px;background:linear-gradient(100deg,#f04444,#fb8b43);color:#111;font-size:15px;font-weight:800;cursor:pointer}
+    button:disabled{opacity:.55;cursor:not-allowed}
+    .status{min-height:24px;margin-top:14px;font-size:13px;line-height:1.5;color:#b9b9c2;text-align:center}
+    .status.error{color:#ff7777}.status.ok{color:#72dfa0}
+    .back{display:block;text-align:center;margin-top:22px;color:#c4c4cc;text-decoration:none;font-size:13px}
+    .back:hover{color:#fff}
+    .hidden{display:none!important}
+    .hint{margin:12px 0 0;color:#898993;font-size:12px;line-height:1.55;text-align:center}
+    @media(max-width:420px){.card{padding:28px 21px}h1{font-size:24px}}
+  </style>
+</head>
+<body>
+  <div class="glow g1"></div><div class="glow g2"></div>
+  <main class="wrap">
+    <section class="card" aria-labelledby="title">
+      <header class="brand">
+        <div class="logo">E</div>
+        <h1 id="title">Sign in with email code</h1>
+        <p class="sub">Enter your email and we’ll send you a one-time verification code.</p>
+      </header>
+      <form id="emailForm">
+        <label for="email">Email address</label>
+        <input id="email" type="email" autocomplete="email" placeholder="you@example.com" required maxlength="254">
+        <button id="sendBtn" type="submit">Send verification code</button>
+      </form>
+      <form id="codeForm" class="hidden">
+        <label for="code">Verification code</label>
+        <input id="code" class="code" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="••••••" required maxlength="8" pattern="[0-9]{6,8}">
+        <p class="hint">Enter the numeric code from the email. It may contain 6–8 digits depending on the Supabase email settings.</p>
+        <button id="verifyBtn" type="submit">Verify and sign in</button>
+        <button id="resendBtn" type="button" style="margin-top:10px;background:#29292f;color:#f5f5f5">Send a new code</button>
+      </form>
+      <div id="status" class="status" role="status" aria-live="polite"></div>
+      <a class="back" href="/auth">← Back to password sign in</a>
+    </section>
+  </main>
+  <script type="module">
+    import { t as supabase } from "./assets/client-DcPTJvB5.js";
+
+    const emailForm = document.getElementById("emailForm");
+    const codeForm = document.getElementById("codeForm");
+    const emailInput = document.getElementById("email");
+    const codeInput = document.getElementById("code");
+    const sendBtn = document.getElementById("sendBtn");
+    const verifyBtn = document.getElementById("verifyBtn");
+    const resendBtn = document.getElementById("resendBtn");
+    const statusBox = document.getElementById("status");
+    let currentEmail = "";
+
+    function message(text, type = "") {
+      statusBox.textContent = text;
+      statusBox.className = "status" + (type ? " " + type : "");
+    }
+    function busy(button, value, label) {
+      button.disabled = value;
+      if (value) button.dataset.oldLabel = button.textContent;
+      button.textContent = value ? label : (button.dataset.oldLabel || label);
+    }
+    function validEmail(value) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+    }
+
+    async function sendCode() {
+      const email = (emailInput.value || currentEmail).trim().toLowerCase();
+      if (!validEmail(email)) {
+        message("Enter a valid email address.", "error");
+        return;
+      }
+      currentEmail = email;
+      busy(sendBtn, true, "Sending…");
+      busy(resendBtn, true, "Sending…");
+      message("Requesting a secure code from Supabase…");
+      try {
+        const { error } = await supabase.auth.signInWithOtp({
+          email: currentEmail,
+          options: { shouldCreateUser: true }
+        });
+        if (error) throw error;
+        emailForm.classList.add("hidden");
+        codeForm.classList.remove("hidden");
+        codeInput.focus();
+        message("Code sent. Check your inbox and spam folder.", "ok");
+      } catch (error) {
+        message(error?.message || "Could not send the code. Check Supabase email settings.", "error");
+      } finally {
+        busy(sendBtn, false, "Send verification code");
+        busy(resendBtn, false, "Send a new code");
+      }
+    }
+
+    emailForm.addEventListener("submit", event => {
+      event.preventDefault();
+      sendCode();
+    });
+
+    codeForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      const token = codeInput.value.trim().replace(/\s+/g, "");
+      if (!/^\d{6,8}$/.test(token)) {
+        message("Enter the 6–8 digit code from your email.", "error");
+        return;
+      }
+      busy(verifyBtn, true, "Verifying…");
+      message("Verifying your code…");
+      try {
+        const { data, error } = await supabase.auth.verifyOtp({
+          email: currentEmail,
+          token,
+          type: "email"
+        });
+        if (error) throw error;
+        if (!data?.session) throw new Error("The code was accepted but no session was returned. Try again.");
+        message("Verified. Opening your chat…", "ok");
+        window.location.replace("/chat");
+      } catch (error) {
+        message(error?.message || "Invalid or expired code. Request a new one.", "error");
+        codeInput.select();
+      } finally {
+        busy(verifyBtn, false, "Verify and sign in");
+      }
+    });
+
+    resendBtn.addEventListener("click", () => {
+      codeInput.value = "";
+      sendCode();
+    });
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (data?.session) window.location.replace("/chat");
+    }).catch(() => {});
+  </script>
+</body>
+</html>
