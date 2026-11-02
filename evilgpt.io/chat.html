@@ -877,8 +877,9 @@ GET /api/company/financial
 import { t as supabase } from "./assets/client-DcPTJvB5.js";
 try {
   const { data, error } = await supabase.auth.getSession();
-  if (error || !data?.session) {
-    location.replace("/auth");
+  // Require a real signed-in account; anonymous Supabase sessions are not sufficient.
+  if (error || !data?.session || data.session.user?.is_anonymous) {
+    location.replace("/auth?reason=login");
   } else {
     await import("./assets/index-D5YlrTBJ.js");
   }
