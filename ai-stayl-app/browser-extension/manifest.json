@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "AI Stayl Browser Bridge",
+  "version": "0.1.0",
+  "description": "Import only user-selected browser tabs into AI Stayl Research Agent.",
+  "permissions": [
+    "tabs",
+    "scripting",
+    "storage"
+  ],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://*/*"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://ai-stayl-app.pages.dev/*",
+        "https://*.ai-stayl-app.pages.dev/*"
+      ],
+      "js": [
+        "bridge.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
