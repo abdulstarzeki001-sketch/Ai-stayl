@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#090d18"><title>AI Stayl — مساعدك الذكي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:dark;--bg:#080c16;--panel:#101727;--panel2:#151f32;--line:#26334b;--text:#eef3ff;--muted:#8e9bb3;--accent:#8b7cff;--accent2:#43d9c5}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(900px 500px at 75% -10%,#25204c 0%,transparent 60%),var(--bg);color:var(--text);font-family:'IBM Plex Sans Arabic',system-ui,sans-serif;min-height:100vh}
+button,input,textarea{font:inherit}button{cursor:pointer}.shell{display:grid;grid-template-columns:290px 1fr;min-height:100vh}.side{background:#0c1220;border-left:1px solid var(--line);padding:22px 16px;display:flex;flex-direction:column;gap:18px}.brand{display:flex;align-items:center;gap:12px;padding:4px 8px 18px}.logo{width:43px;height:43px;border-radius:15px;background:linear-gradient(135deg,#a18aff,#4bdbc9);display:grid;place-items:center;color:#09111e;font-weight:800;font-size:22px;box-shadow:0 8px 28px #8274ff40}.brand b{font-size:18px}.brand small{display:block;color:var(--muted);font-size:11px;margin-top:2px}.new{border:1px solid #5b55a6;background:#242047;color:#fff;border-radius:13px;padding:12px;font-weight:600}.section{color:#7f8ba3;font-size:11px;padding:4px 9px 0}.history{display:flex;flex-direction:column;gap:5px;overflow:auto;flex:1}.history button{background:transparent;border:0;color:#b9c4d8;text-align:right;padding:10px;border-radius:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.history button.active,.history button:hover{background:#1a2540;color:#fff}.userbox{border-top:1px solid var(--line);padding:14px 6px 0;display:flex;align-items:center;justify-content:space-between;gap:8px}.userbox span{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis}.ghost{background:transparent;border:1px solid var(--line);color:#c8d1e2;border-radius:10px;padding:8px 11px}.main{display:flex;flex-direction:column;min-width:0;min-height:100vh}.top{height:68px;border-bottom:1px solid #202b40;display:flex;align-items:center;justify-content:space-between;padding:0 28px}.top strong{font-size:14px}.status{font-size:11px;color:#6fe0c8;display:flex;align-items:center;gap:7px}.dot{width:7px;height:7px;border-radius:50%;background:#55d9b7;box-shadow:0 0 12px #55d9b7}.content{width:min(900px,100%);margin:auto;padding:34px 28px 145px;flex:1}.welcome{text-align:center;padding:8vh 10px 25px}.orb{margin:0 auto 22px;width:76px;height:76px;border-radius:25px;background:linear-gradient(135deg,#8875ff,#43d9c5);display:grid;place-items:center;color:#08111d;font-size:32px;font-weight:800;box-shadow:0 18px 60px #6d65d044}.welcome h1{font-size:clamp(25px,4vw,38px);margin:0 0 12px}.welcome p{color:var(--muted);margin:0 auto;max-width:520px;line-height:1.9}.suggestions{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;max-width:650px;margin:30px auto}.suggestions button{background:#111a2b;border:1px solid var(--line);color:#dce5f7;text-align:right;border-radius:14px;padding:15px;line-height:1.6}.suggestions button:hover{border-color:#7f75e8;background:#171f38}.messages{display:flex;flex-direction:column;gap:18px}.msg{display:flex;gap:11px;align-items:flex-start;max-width:92%}.msg.user{align-self:flex-start;flex-direction:row-reverse}.avatar{flex:0 0 32px;height:32px;border-radius:11px;background:#26234a;color:#bdb3ff;display:grid;place-items:center;font-weight:700}.msg.user .avatar{background:#123b3a;color:#71e7d4}.bubble{padding:13px 16px;border:1px solid var(--line);background:#111a2b;border-radius:15px;line-height:1.85;white-space:pre-wrap;overflow-wrap:anywhere}.msg.user .bubble{background:#1b2140;border-color:#39396c}.composer-wrap{position:fixed;bottom:0;right:290px;left:0;padding:20px 25px max(20px,env(safe-area-inset-bottom));background:linear-gradient(transparent,#080c16 24%);}.composer{width:min(850px,100%);margin:auto;background:#111a2b;border:1px solid #34415c;border-radius:19px;padding:10px;box-shadow:0 15px 50px #0008}.composer textarea{display:block;width:100%;min-height:58px;max-height:180px;resize:vertical;background:transparent;border:0;outline:0;color:var(--text);padding:9px 10px}.compose-bottom{display:flex;justify-content:space-between;align-items:center;padding:3px 5px}.hint{font-size:11px;color:#7e8ba5}.send{border:0;border-radius:12px;background:linear-gradient(135deg,#9a85ff,#53d9c6);color:#08111d;font-weight:800;padding:9px 18px}.send:disabled{opacity:.4;cursor:not-allowed}.auth{position:fixed;inset:0;background:#050811eF;backdrop-filter:blur(12px);display:grid;place-items:center;padding:20px;z-index:5}.auth-card{width:min(430px,100%);background:#111a2b;border:1px solid #34415c;border-radius:22px;padding:28px;box-shadow:0 25px 100px #0009}.auth-card h2{margin:0 0 7px}.auth-card p{color:var(--muted);font-size:13px;margin:0 0 22px}.auth-card input{width:100%;padding:13px 14px;margin:6px 0;background:#0b1220;border:1px solid var(--line);border-radius:12px;color:#fff;outline:0;direction:ltr}.auth-actions{display:flex;gap:9px;margin-top:14px}.auth-actions button{flex:1;padding:12px;border-radius:12px;border:0;background:#8c7cff;color:#0a1020;font-weight:700}.auth-actions .secondary{background:#202b40;color:#dce5f7}.error{color:#ff9b9b;font-size:12px;min-height:20px;margin-top:10px}.hidden{display:none!important}.mobile-menu{display:none}
+@media(max-width:760px){.shell{grid-template-columns:1fr}.side{display:none}.top{padding:0 16px}.content{padding:20px 15px 145px}.composer-wrap{right:0;padding:12px 12px max(12px,env(safe-area-inset-bottom))}.welcome{padding-top:8vh}.suggestions{grid-template-columns:1fr}.msg{max-width:100%}.mobile-menu{display:block}}
+</style>
+</head>
+<body>
+<div class="shell">
+<aside class="side">
+ <div class="brand"><div class="logo">S</div><div><b>AI STAYL</b><small>ذكاء اصطناعي — مساحة عملك</small></div></div>
+ <button class="new" id="newChat">＋ محادثة جديدة</button>
+ <div class="section">المحادثات السابقة</div><div class="history" id="history"></div>
+ <div class="userbox"><span id="userEmail">غير مسجل</span><button class="ghost" id="logout">خروج</button></div>
+</aside>
+<main class="main">
+ <header class="top"><strong>المساعد الذكي</strong><div class="status"><i class="dot"></i> النظام متصل</div></header>
+ <section class="content">
+  <div class="welcome" id="welcome"><div class="orb">✦</div><h1>مرحباً بك في AI Stayl</h1><p>مساعد ذكي للبرمجة، التحليل، التعلم، والإنتاجية. اكتب سؤالك وابدأ.</p>
+   <div class="suggestions"><button data-prompt="ساعدني في بناء مشروع برمجي خطوة بخطوة">⌘ بناء مشروع برمجي</button><button data-prompt="اشرح لي هذا المفهوم بطريقة مبسطة مع أمثلة">✧ شرح وتعلّم</button><button data-prompt="راجع هذا الكود وابحث عن الأخطاء الأمنية">⌕ مراجعة كود وأمان</button><button data-prompt="ضع لي خطة عمل عملية لهذا الأسبوع">◷ تنظيم العمل</button></div>
+  </div>
+  <div class="messages" id="messages"></div>
+ </section>
+</main>
+</div>
+<div class="composer-wrap"><form class="composer" id="chatForm"><textarea id="prompt" placeholder="اكتب رسالتك إلى AI Stayl..." rows="2"></textarea><div class="compose-bottom"><span class="hint">Enter للإرسال · Shift + Enter لسطر جديد</span><button class="send" id="send" type="submit">إرسال ↑</button></div></form></div>
+<div class="auth" id="auth">
+ <div class="auth-card"><div class="brand" style="padding:0 0 20px"><div class="logo">S</div><div><b>AI STAYL</b><small>حسابك الخاص ومحادثاتك محفوظة</small></div></div>
+ <h2 id="authTitle">تسجيل الدخول</h2><p>أنشئ حساباً أو سجّل الدخول للبدء.</p>
+ <input id="email" type="email" placeholder="البريد الإلكتروني" autocomplete="email">
+ <input id="password" type="password" placeholder="كلمة المرور" autocomplete="current-password">
+ <div class="auth-actions"><button id="signIn">دخول</button><button class="secondary" id="signUp">إنشاء حساب</button></div>
+ <div class="error" id="authError"></div>
+ </div>
+</div>
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.0";
+const SUPABASE_URL="https://ruosabdszffqdobeqgmz.supabase.co";
+const SUPABASE_KEY="sb_publishable_1PPYe8Tod6yDvegWzv5p-g_EIgu9zgE";
+const AI_URL="https://chat-ai-stayl.abdulstarzeki001.workers.dev";
+const db=createClient(SUPABASE_URL,SUPABASE_KEY);
+const $=id=>document.getElementById(id);
+let user=null,current=null,chatMessages=[],busy=false;
+function showAuth(show){$("auth").classList.toggle("hidden",!show)}
+function escapeText(s){return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function renderMessages(){ $("welcome").classList.toggle("hidden",chatMessages.length>0); $("messages").innerHTML=chatMessages.map(m=>'<div class="msg '+(m.role==="user"?"user":"")+'"><div class="avatar">'+(m.role==="user"?"أ":"✦")+'</div><div class="bubble">'+escapeText(m.content)+'</div></div>').join(""); window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"});}
+async function loadHistory(){const {data,error}=await db.from("conversations").select("id,title,updated_at").order("updated_at",{ascending:false}).limit(50);if(error){console.error(error);return} $("history").innerHTML="";(data||[]).forEach(c=>{const b=document.createElement("button");b.textContent=c.title;b.className=c.id===current?"active":"";b.onclick=()=>openConversation(c.id);$("history").append(b)})}
+async function newConversation(){const {data,error}=await db.from("conversations").insert({user_id:user.id,title:"محادثة جديدة"}).select().single();if(error){alert("تعذر إنشاء محادثة: "+error.message);return}current=data.id;chatMessages=[];renderMessages();await loadHistory();$("prompt").focus()}
+async function openConversation(id){current=id;const {data,error}=await db.from("messages").select("id,role,content,created_at").eq("conversation_id",id).order("created_at");if(error){alert(error.message);return}chatMessages=data||[];renderMessages();await loadHistory()}
+async function boot(){const {data}=await db.auth.getSession();user=data.session?.user||null;if(!user){showAuth(true);return}showAuth(false);$("userEmail").textContent=user.email||"حساب المستخدم";await loadHistory();const {data:cs}=await db.from("conversations").select("id").order("updated_at",{ascending:false}).limit(1);if(cs?.length)await openConversation(cs[0].id);else await newConversation()}
+async function authAction(mode){$("authError").textContent="";const email=$("email").value.trim(),password=$("password").value;if(!email||password.length<6){$("authError").textContent="أدخل بريداً صحيحاً وكلمة مرور من 6 أحرف على الأقل.";return}const result=mode==="in"?await db.auth.signInWithPassword({email,password}):await db.auth.signUp({email,password});if(result.error){$("authError").textContent=result.error.message;return}if(mode==="up"&&!result.data.session){$("authError").textContent="تم إنشاء الحساب. تحقق من بريدك الإلكتروني ثم سجّل الدخول.";return}await boot()}
+$("signIn").onclick=()=>authAction("in");$("signUp").onclick=()=>authAction("up");$("logout").onclick=async()=>{await db.auth.signOut();user=null;current=null;chatMessages=[];renderMessages();showAuth(true)};$("newChat").onclick=newConversation;
+$("chatForm").addEventListener("submit",async e=>{e.preventDefault();const text=$("prompt").value.trim();if(!text||busy||!user)return;if(!current)await newConversation();busy=true;$("send").disabled=true;$("prompt").value="";chatMessages.push({role:"user",content:text});renderMessages();const saveUser=await db.from("messages").insert({conversation_id:current,user_id:user.id,role:"user",content:text});if(saveUser.error){alert(saveUser.error.message);busy=false;$("send").disabled=false;return}
+try{const {data:{session}}=await db.auth.getSession();const response=await fetch(AI_URL,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token},body:JSON.stringify({messages:chatMessages.slice(-16).map(({role,content})=>({role,content}))})});const result=await response.json();if(!response.ok)throw new Error(result.error||"AI request failed");const reply=result.reply||"لم يصل رد.";chatMessages.push({role:"assistant",content:reply});const saved=await db.from("messages").insert({conversation_id:current,user_id:user.id,role:"assistant",content:reply});if(saved.error)throw saved.error;await db.from("conversations").update({updated_at:new Date().toISOString(),title:chatMessages.filter(m=>m.role==="user").length===1?text.slice(0,48):undefined}).eq("id",current);renderMessages();await loadHistory()}catch(err){chatMessages.push({role:"assistant",content:"حدث خطأ: "+err.message});renderMessages()}finally{busy=false;$("send").disabled=false;$("prompt").focus()}});
+$("prompt").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("chatForm").requestSubmit()}});
+document.querySelectorAll("[data-prompt]").forEach(b=>b.onclick=()=>{$("prompt").value=b.dataset.prompt;$("prompt").focus()});
+db.auth.onAuthStateChange((_event,session)=>{if(session?.user&&!user){user=session.user;boot()}});
+boot();
+</script>
+</body></html>
