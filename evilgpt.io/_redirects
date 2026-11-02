@@ -1,4 +1,4 @@
 /* /index.html 200
-/auth /auth.html 301
-/chat /chat.html 301
-/reset-password /reset-password.html 301
+/auth /auth.html 200
+/chat /chat.html 200
+/reset-password /reset-password.html 200
