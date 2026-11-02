@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+<title>Verify Email — EvilGPT</title>
+<link rel="stylesheet" href="assets/styles-CanlB1Ga.css">
+<meta name="theme-color" content="#000000">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https:; connect-src 'self' https: wss:; worker-src 'self' blob:">
+</head>
+<body>
+<main class="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
+ <div class="absolute top-1/3 left-1/2 -translate-x-1/2 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse"></div>
+ <section class="relative z-10 w-full max-w-md rounded-2xl border border-border/50 bg-card/70 p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+  <a href="/auth" class="text-sm text-muted-foreground hover:text-primary">← Back to sign in</a>
+  <div class="text-center mt-6">
+   <div class="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-2xl font-black evil-glow">E</div>
+   <h1 class="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Verify your email</h1>
+   <p class="mt-2 text-sm text-muted-foreground">Enter the verification code sent to your email address.</p>
+  </div>
+  <form id="verify-form" class="mt-6 space-y-4">
+   <label for="email" class="block text-sm font-medium">Email</label>
+   <input id="email" type="email" required autocomplete="email" class="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm" placeholder="Enter your email">
+   <label for="token" class="block text-sm font-medium">Verification code</label>
+   <input id="token" type="text" required inputmode="numeric" autocomplete="one-time-code" maxlength="8" pattern="[0-9]{6,8}" class="flex h-12 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-center text-xl tracking-[0.45em]" placeholder="••••••••">
+   <p id="status" class="min-h-5 text-sm text-muted-foreground" role="status"></p>
+   <button id="verify" type="submit" class="inline-flex h-11 w-full items-center justify-center rounded-md bg-gradient-to-r from-primary to-accent px-4 py-2 font-bold text-black hover:opacity-90 disabled:opacity-50">Verify email</button>
+  </form>
+  <button id="resend" type="button" class="mt-4 w-full text-sm text-primary hover:underline">Resend verification code</button>
+ </section>
+</main>
+<script type="module">
+import {t as supabase} from "./assets/client-DcPTJvB5.js";
+const $=id=>document.getElementById(id),params=new URLSearchParams(location.search);
+$("email").value=(params.get("email")||"").trim();
+const setStatus=(message,error=false)=>{$("status").textContent=message;$("status").className="min-h-5 text-sm "+(error?"text-destructive":"text-muted-foreground")};
+(async()=>{
+ const {data:{session}}=await supabase.auth.getSession();
+ if(session){location.replace("/chat");return}
+ const tokenHash=params.get("token_hash"),type=params.get("type");
+ if(tokenHash&&type){
+  const {error}=await supabase.auth.verifyOtp({token_hash:tokenHash,type});
+  if(error)setStatus(error.message,true);else location.replace("/chat");
+ }
+})();
+$("token").addEventListener("input",e=>e.target.value=e.target.value.replace(/\\D/g,"").slice(0,8));
+$("verify-form").addEventListener("submit",async e=>{
+ e.preventDefault();const email=$("email").value.trim().toLowerCase(),token=$("token").value.trim();
+ $("verify").disabled=true;setStatus("Verifying…");
+ const {error}=await supabase.auth.verifyOtp({email,token,type:"signup"});
+ if(error)setStatus(error.message,true);else{setStatus("Email verified. Redirecting…");location.replace("/chat")}
+ $("verify").disabled=false;
+});
+$("resend").addEventListener("click",async()=>{
+ const email=$("email").value.trim().toLowerCase();if(!email){setStatus("Enter your email address first.",true);return}
+ $("resend").disabled=true;setStatus("Sending a new code…");
+ const {error}=await supabase.auth.resend({type:"signup",email});
+ setStatus(error?error.message:"A new verification email has been sent.",!!error);
+ $("resend").disabled=false;
+});
+</script>
+</body></html>
