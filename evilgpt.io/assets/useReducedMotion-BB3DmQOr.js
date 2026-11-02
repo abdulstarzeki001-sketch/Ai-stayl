@@ -1,0 +1,1 @@
+import{a as e,n as t}from"./jsx-runtime-B-hcVAMW.js";import{t as n}from"./use-mobile-BFWtVZOd.js";var r=e(t(),1),i=()=>{let e=n(),[t,i]=(0,r.useState)(!1);return(0,r.useEffect)(()=>{let e=window.matchMedia(`(prefers-reduced-motion: reduce)`);i(e.matches);let t=()=>i(e.matches);return e.addEventListener(`change`,t),()=>e.removeEventListener(`change`,t)},[]),e||t};export{i as t};

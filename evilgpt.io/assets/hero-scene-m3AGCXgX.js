@@ -1,0 +1,1 @@
+var e=`/assets/hero-scene-BVoIZNYS.avif`;export{e as t};
