@@ -1,0 +1,1 @@
+{"name":"ai-stayl-agent-backend","private":true,"type":"module","scripts":{"test":"node --test agent-worker.test.mjs"}}
