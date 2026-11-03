@@ -32,3 +32,6 @@ The assistant is intended for general help and authorized defensive security. No
 
 ### Trust boundaries and limitations
 Read-only in v1: no login bypass, no form submissions, no account changes, no vulnerability scans on third-party production systems. The extension excludes input fields and cookies; visible page text is nevertheless shared with Workers AI **only when you select the tabs and submit a question**. Treat imported content as untrusted evidence. Public page fetching accepts HTTPS and rejects private/IP/localhost hostnames and redirects; DNS rebinding needs additional platform-level network controls before treating this as a general-purpose fetch proxy. Search uses a public RSS endpoint that can become unavailable; when this happens, the UI offers a search-engine fallback. The existing chat continues to use `chat-ai-stayl` unchanged.
+
+### Live fallback (Cloudflare Pages queue)
+The independently deployed Agent UI is available at https://agent-ai-stayl.abdulstarzeki001.workers.dev/agent.html. Its Worker serves the same HTML/CSS/JS while the GitHub-connected Pages build is queued. The Chrome extension targets this live Worker and also supports the Pages origin once it deploys.
