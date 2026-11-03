@@ -19,7 +19,8 @@
     {
       "matches": [
         "https://ai-stayl-app.pages.dev/*",
-        "https://*.ai-stayl-app.pages.dev/*"
+        "https://*.ai-stayl-app.pages.dev/*",
+        "https://agent-ai-stayl.abdulstarzeki001.workers.dev/*"
       ],
       "js": [
         "bridge.js"
