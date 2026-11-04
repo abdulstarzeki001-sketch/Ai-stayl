@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#080d18">
+<title>AI-Stayl | المحادثة الذكية</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:#080d18;color:#ecf2fa}
+button,textarea{font:inherit}button{cursor:pointer}a{color:inherit}
+.shell{display:grid;grid-template-columns:265px minmax(0,1fr);height:100dvh;overflow:hidden}
+.side{background:#0e1524;border-left:1px solid #23324a;display:flex;flex-direction:column;min-height:0;padding:18px 14px}
+.brand{font-weight:900;letter-spacing:.5px;font-size:23px;color:#5bddc5}
+.brand small{display:block;font-weight:400;letter-spacing:0;color:#92a0b8;font-size:12px;margin:6px 0 22px}
+.btn{border:1px solid #344a65;border-radius:12px;background:#18283d;color:#e9f6ff;padding:11px 16px;transition:.2s}
+.btn:hover{background:#233d55}.primary{background:#06ac9c;border-color:#06ac9c;color:#051715;font-weight:750}.primary:hover{background:#3bd5c3}
+.btn:disabled{opacity:.5;cursor:default}.sessions{overflow:auto;flex:1;margin-top:14px;display:flex;flex-direction:column;gap:7px}
+.session{background:transparent;color:#c5d3e7;border:1px solid transparent;border-radius:11px;padding:11px 12px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.session:hover,.session.active{background:#15243a;border-color:#294866}
+.sidebar-bottom{padding-top:12px;border-top:1px solid #23324a;font-size:12px;color:#9fb1c6;display:grid;gap:8px}
+.app{display:flex;flex-direction:column;min-width:0;min-height:0}
+.top{height:67px;flex-shrink:0;border-bottom:1px solid #1e3047;display:flex;align-items:center;gap:12px;padding:0 22px;background:#0c1422}
+.top strong{font-size:17px}.top span{font-size:12px;color:#8ed8c8;margin-right:auto}
+#mobileMenu{display:none}
+#messages{overflow:auto;flex:1;min-height:0;padding:26px max(22px,calc((100% - 850px)/2));display:flex;flex-direction:column;gap:16px}
+.welcome{margin:auto;text-align:center;max-width:490px;color:#91a6bb;line-height:1.85}
+.welcome h1{color:#f4f8ff;font-size:29px;margin:0 0 7px}
+.bubble{max-width:min(85%,760px);padding:14px 17px;border-radius:18px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.8;font-size:15px}
+.bubble.user{align-self:flex-start;background:#176e68;color:#f2fffb;border-bottom-right-radius:5px}
+.bubble.assistant{align-self:flex-end;background:#14243a;border:1px solid #253e59;color:#ecf4ff;border-bottom-left-radius:5px}
+.composer{width:min(900px,100%);margin:0 auto;padding:10px 22px calc(12px + env(safe-area-inset-bottom))}
+.entry{display:flex;align-items:flex-end;gap:10px;border:1px solid #344b61;background:#101d2e;border-radius:18px;padding:11px}
+#draft{resize:none;min-height:49px;max-height:170px;width:100%;outline:none;background:transparent;color:white;border:0;padding:11px 6px;font-size:16px;line-height:1.5}
+#send{min-width:76px}
+.hint{text-align:center;font-size:11px;color:#8395ab;padding-top:9px}
+#feedback{min-height:19px;font-size:12px;color:#f6bb80;padding:0 8px}
+.pill{font-size:11px;color:#81d8c6;border:1px solid #225a53;border-radius:100px;padding:4px 9px}
+@media(max-width:710px){
+ .shell{grid-template-columns:1fr}.side{position:fixed;z-index:20;top:0;bottom:0;right:0;width:min(310px,88vw);box-shadow:0 0 0 200vw #0009;transform:translateX(105%);transition:transform .2s}.side.open{transform:translateX(0)}
+ #mobileMenu{display:block}.top{padding:0 12px}.top strong{font-size:15px}.top span{font-size:10px}
+ #messages{padding:18px 13px}.composer{padding:8px 10px calc(10px + env(safe-area-inset-bottom))}
+ .bubble{max-width:92%}.welcome h1{font-size:24px}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+<aside class="side" id="sidebar">
+ <div class="brand">AI-STAYL<small>مساعدك الذكي — محادثات خاصة</small></div>
+ <button class="btn primary" id="newChat">+ محادثة جديدة</button>
+ <div class="sessions" id="sessions"></div>
+ <div class="sidebar-bottom">
+ <div id="accountLabel">الحساب قيد الفحص…</div>
+ <button class="btn" id="logout">تسجيل الخروج</button>
+ <a href="/chat-legacy.html" style="text-decoration:none;color:#8da9bd">الواجهة القديمة (احتياط)</a>
+ </div>
+</aside>
+<main class="app">
+ <header class="top">
+  <button class="btn" id="mobileMenu" aria-label="القائمة">☰</button>
+  <strong>AI-Stayl Chat</strong>
+  <span id="connection">جاري الاتصال…</span>
+  <span class="pill">Cloudflare AI</span>
+ </header>
+ <section id="messages" role="log" aria-live="polite">
+  <div class="welcome" id="welcome"><h1>شلون أساعدك اليوم؟</h1><div>اكتب سؤالك وراح أرد عليك. تگدر تسأل عن البرمجة، الدراسة، أعمالك، أو الأمن السيبراني الدفاعي.</div></div>
+ </section>
+ <form class="composer" id="form">
+  <div id="feedback" role="status"></div>
+  <div class="entry">
+   <textarea id="draft" placeholder="اكتب رسالتك هنا…" maxlength="8000" rows="1" enterkeyhint="send" aria-label="رسالتك"></textarea>
+   <button class="btn primary" id="send" type="submit">إرسال</button>
+  </div>
+  <div class="hint">Enter للإرسال، Shift+Enter لسطر جديد. المحادثات تُحفظ في حسابك.</div>
+ </form>
+</main>
+</div>
+<script type="module">
+import { t as supabase } from "/assets/client-DcPTJvB5.js";
+const OWNER="abdulstarzeki001@gmail.com";
+const el=id=>document.getElementById(id);
+let owner=null, sessionId=null, history=[],busy=false,sessions=[],working=true;
+const setState=(v,ok=true)=>{el("connection").textContent=v;el("connection").style.color=ok?"#81d8c6":"#ffc28d"};
+const notice=v=>{el("feedback").textContent=v||""};
+const scroll=()=>{el("messages").scrollTop=el("messages").scrollHeight};
+const toggleMenu=()=>el("sidebar").classList.toggle("open");
+const safeTitle=t=>t.length>40?t.slice(0,40)+"…":t;
+function bubble(role,content){
+ const node=document.createElement("div");node.className="bubble "+role;
+ node.textContent=content;el("messages").appendChild(node);scroll();return node;
+}
+function renderMessages(){
+ el("messages").replaceChildren();
+ if(!history.length){
+  const w=document.createElement("div");w.className="welcome";
+  const h=document.createElement("h1");h.textContent="شلون أساعدك اليوم؟";
+  const s=document.createElement("div");s.textContent="أرسل رسالة حتى نبدأ المحادثة.";
+  w.append(h,s);el("messages").appendChild(w);return;
+ }
+ for(const x of history)bubble(x.role,x.content);
+}
+function renderSessions(){
+ el("sessions").replaceChildren();
+ for(const s of sessions){
+  const b=document.createElement("button");b.className="session"+(s.id===sessionId?" active":"");
+  b.textContent=s.custom_title||s.title||"محادثة جديدة";b.title=b.textContent;
+  b.onclick=()=>openChat(s.id);el("sessions").appendChild(b);
+ }
+}
+async function loadSessions(){
+ const {data,error}=await supabase.from("chat_sessions").select("id,title,custom_title,updated_at").eq("user_id",owner.id).order("updated_at",{ascending:false}).limit(100);
+ if(error){notice("تعذر تحميل سجل المحادثات: "+error.message);sessions=[];return}
+ sessions=data||[];renderSessions();
+}
+async function createChat(){
+ notice("");
+ const {data,error}=await supabase.from("chat_sessions").insert({user_id:owner.id}).select("id,title,custom_title,updated_at").single();
+ if(error){notice("تعذر إنشاء جلسة جديدة، لكن يمكن المحادثة بدون حفظ: "+error.message);sessionId=null;history=[];renderMessages();return}
+ sessionId=data.id;sessions.unshift(data);history=[];renderSessions();renderMessages();
+ el("sidebar").classList.remove("open");el("draft").focus();
+}
+async function openChat(id){
+ if(busy)return;
+ sessionId=id;renderSessions();el("sidebar").classList.remove("open");
+ const {data,error}=await supabase.from("chat_messages").select("role,content").eq("session_id",id).eq("user_id",owner.id).order("created_at",{ascending:true}).limit(200);
+ if(error){notice("تعذر فتح الرسائل: "+error.message);return}
+ history=(data||[]).filter(x=>(x.role==="user"||x.role==="assistant")&&typeof x.content==="string");
+ renderMessages();
+}
+async function save(role,content){
+ if(!sessionId)return;
+ const {error}=await supabase.from("chat_messages").insert({session_id:sessionId,user_id:owner.id,role,content});
+ if(error)notice("المحادثة تعمل لكن حفظ الرسالة تعذر: "+error.message);
+}
+async function send(e){
+ e.preventDefault();
+ const text=el("draft").value.trim();
+ if(!text||busy||!owner)return;
+ busy=true;el("send").disabled=true;el("draft").disabled=true;notice("");
+ el("draft").value="";
+ try{
+  if(!sessionId)await createChat();
+  el("welcome")?.remove();
+  history.push({role:"user",content:text});bubble("user",text);
+  await save("user",text);
+  const {data:{session},error}=await supabase.auth.getSession();
+  if(error||!session?.access_token)throw Error("انتهت جلسة تسجيل الدخول، سجّل الدخول مرة أخرى.");
+  setState("جاري توليد الرد…");
+  const res=await fetch("/api/chat",{
+   method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+session.access_token},
+   body:JSON.stringify({messages:history.slice(-16).map(m=>({role:m.role,content:m.content.slice(0,12000)})),modelId:"model-free",webSearch:false})
+  });
+  if(!res.ok){
+   let errorText="HTTP "+res.status;
+   try{const j=await res.json();errorText=j.error||j.message||errorText}catch{}
+   throw Error(errorText);
+  }
+  if(!res.body)throw Error("الخادم لم يُرجع تدفق رسائل.");
+  const output=bubble("assistant","…"),reader=res.body.getReader(),decoder=new TextDecoder();
+  let pending="",answer="";
+  const processLine=line=>{
+   line=line.trim();
+   if(!line.startsWith("data:"))return;
+   const payload=line.slice(5).trim();
+   if(payload==="[DONE]"||!payload)return;
+   try{
+    const msg=JSON.parse(payload);
+    if(msg.error)throw Error(typeof msg.error==="string"?msg.error:"خطأ في النموذج");
+    const delta=msg.choices?.[0]?.delta?.content;
+    if(typeof delta==="string"){answer+=delta;output.textContent=answer;scroll()}
+   }catch(err){if(err instanceof SyntaxError)return;throw err}
+  };
+  while(true){
+   const {done,value}=await reader.read();if(done)break;
+   pending+=decoder.decode(value,{stream:true});let idx;
+   while((idx=pending.indexOf("\n"))>=0){const line=pending.slice(0,idx);pending=pending.slice(idx+1);processLine(line)}
+  }
+  if(pending.trim())processLine(pending);
+  if(!answer.trim())throw Error("النموذج رجّع جوابًا فارغًا. جرّب مجددًا.");
+  history.push({role:"assistant",content:answer});
+  await save("assistant",answer);
+  if(sessionId&&history.length===2){
+    const title=safeTitle(text);
+    await supabase.from("chat_sessions").update({custom_title:title,updated_at:new Date().toISOString()}).eq("id",sessionId).eq("user_id",owner.id);
+    const item=sessions.find(s=>s.id===sessionId);if(item)item.custom_title=title;renderSessions();
+  }
+  setState("متصل — جاهز");
+ }catch(err){
+  setState("تعذّر إرسال الرسالة",false);
+  notice("خطأ: "+(err?.message||String(err))+" — تقدر تعيد المحاولة.");
+ }finally{
+  busy=false;el("send").disabled=false;el("draft").disabled=false;el("draft").focus();
+ }
+}
+async function init(){
+ try{
+  const {data,error}=await supabase.auth.getUser();
+  const user=data?.user;
+  if(error||!user||user.is_anonymous||user.email?.toLowerCase()!==OWNER){
+   location.replace("/auth?reason=login");return;
+  }
+  owner=user;el("accountLabel").textContent=user.email;
+  setState("متصل بالحساب");
+  await loadSessions();
+  if(sessions.length)await openChat(sessions[0].id);
+  else await createChat();
+  setState("متصل — جاهز");
+ }catch(err){setState("خطأ في تحميل المحادثة",false);notice(err?.message||String(err))}
+}
+el("form").addEventListener("submit",send);
+el("draft").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.isComposing){e.preventDefault();el("form").requestSubmit()}});
+el("newChat").addEventListener("click",createChat);
+el("mobileMenu").addEventListener("click",toggleMenu);
+el("logout").addEventListener("click",async()=>{await supabase.auth.signOut();location.replace("/auth")});
+init();
+</script>
+</body>
+</html>
