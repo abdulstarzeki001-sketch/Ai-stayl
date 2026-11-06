@@ -173,3 +173,87 @@ test("research handles search failure without fabricated citations",async()=>{
     assert.equal(data.steps[0].status,"unavailable");
   }finally{reset();}
 });
+
+
+test("mixed-language research rejects Exchange results and reads Cloudflare Workers AI", async () => {
+  const searched = [], fetched = [];
+  const reset=stubFetch((url,opts)=>{
+    if(url.includes("/auth/v1/user")) return authenticated(url,opts);
+    if(url.includes("api.search.brave.com")) {
+      const q = new URL(url).searchParams.get("q");
+      searched.push(q);
+      return new Response(JSON.stringify({web:{results:[
+        {title:"Microsoft Exchange Server September updates",url:"https://techcommunity.microsoft.com/blog/exchange/security-updates",description:"Exchange Server security fixes"},
+        {title:"Cloudflare Workers AI documentation",url:"https://developers.cloudflare.com/workers-ai/",description:"Cloudflare Workers AI inference docs"},
+        {title:"Cloudflare Workers AI model catalog",url:"https://developers.cloudflare.com/workers-ai/models/",description:"Cloudflare Workers AI models and updates"}
+      ]}}),{status:200,headers:{"content-type":"application/json"}});
+    }
+    fetched.push(url);
+    assert.ok(url.includes("developers.cloudflare.com/workers-ai/"));
+    return new Response("<html><title>Cloudflare Workers AI</title><body>Cloudflare Workers AI model updates documentation.</body></html>",{status:200,headers:{"content-type":"text/html"}});
+  });
+  try {
+    const response=await agent.fetch(req({
+      action:"research",question:"ابحث عن أحدث تحديثات Cloudflare Workers AI، اقرأ ثلاثة مصادر، وقارن المعلومات"
+    }),{...base,BRAVE_SEARCH_API_KEY:"fake-key-for-test-only"});
+    assert.equal(response.status,200);
+    const result=await response.json();
+    assert.equal(result.provider,"brave");
+    assert.equal(result.sources.length,2);
+    assert.ok(result.sources.every(s=>s.url.includes("developers.cloudflare.com")));
+    assert.ok(result.sources.every(s=>s.evidenceType==="read_page"));
+    assert.ok(!JSON.stringify(result).includes("Exchange Server"));
+    assert.equal(fetched.length,2);
+    assert.equal(searched.length,1);
+    assert.match(searched[0],/Cloudflare Workers AI/i);
+    assert.doesNotMatch(searched[0],/اقرأ|ثلاثة|وقارن/);
+  }finally{reset();}
+});
+
+test("blocked 200-OK pages never appear as cited sources",async()=>{
+  let aiCalls=0;
+  const reset=stubFetch((url,opts)=>{
+    if(url.includes("/auth/v1/user")) return authenticated(url,opts);
+    if(url.includes("api.search.brave.com")) return new Response(JSON.stringify({web:{results:[
+      {title:"Cloudflare Workers AI blocked page",url:"https://www.cloudflare.com/blocked",description:"Cloudflare Workers AI information"},
+      {title:"Cloudflare Workers AI official docs",url:"https://developers.cloudflare.com/workers-ai/",description:"Cloudflare Workers AI documentation"}
+    ]}}),{status:200,headers:{"content-type":"application/json"}});
+    if(url.includes("/blocked")) return new Response("<html><title>Access Denied</title><body>Your request has been blocked. This could be caused by security protections.</body></html>",{status:200,headers:{"content-type":"text/html"}});
+    return new Response("<html><title>Cloudflare Workers AI docs</title><body>Serverless model inference with Cloudflare Workers AI.</body></html>",{status:200,headers:{"content-type":"text/html"}});
+  });
+  const env={...base,BRAVE_SEARCH_API_KEY:"fake-key-for-test-only",
+    AI:{async run(){aiCalls++;return {response:"الصفحة الرسمية متاحة [1]"}}}};
+  try {
+    const response=await agent.fetch(req({action:"research",question:"أحدث تحديثات Cloudflare Workers AI"}),env);
+    assert.equal(response.status,200);
+    const result=await response.json();
+    assert.equal(result.sources.length,1);
+    assert.equal(result.sources[0].url,"https://developers.cloudflare.com/workers-ai/");
+    assert.ok(!JSON.stringify(result).includes("Access Denied"));
+    assert.ok(result.steps.some(s=>s.action==="read" && s.status==="partial"));
+    assert.equal(aiCalls,1);
+  }finally{reset();}
+});
+
+test("only irrelevant results fail closed without invoking AI",async()=>{
+  let aiCalls=0, pageReads=0;
+  const reset=stubFetch((url,opts)=>{
+    if(url.includes("/auth/v1/user")) return authenticated(url,opts);
+    if(url.includes("api.search.brave.com")) return new Response(JSON.stringify({web:{results:[
+      {title:"Microsoft Exchange Server updates",url:"https://techcommunity.microsoft.com/blog/exchange/release",description:"October Exchange Server Security Updates"}
+    ]}}),{status:200,headers:{"content-type":"application/json"}});
+    pageReads++;throw new Error("unrelated page should not be fetched");
+  });
+  try{
+    const response=await agent.fetch(req({action:"research",question:"Latest Cloudflare Workers AI updates"}),{
+      ...base,BRAVE_SEARCH_API_KEY:"fake-key-for-test-only",
+      AI:{async run(){aiCalls++;return {response:"should not be used"}}}
+    });
+    assert.equal(response.status,200);
+    const out=await response.json();
+    assert.deepEqual(out.sources,[]);
+    assert.equal(out.steps[0].status,"empty");
+    assert.equal(pageReads,0);
+    assert.equal(aiCalls,0);
+  }finally{reset();}
+});
