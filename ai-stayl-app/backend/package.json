@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node build-agent-bundle.mjs && node --check dist/agent-bundle.mjs && node --test agent-worker.test.mjs && node --check ../browser-extension/bridge.js && node --check ../browser-extension/popup.js",
+    "test": "node build-agent-bundle.mjs && node --check dist/agent-bundle.mjs && node --test agent-worker.test.mjs agent-bundle.test.mjs && node --check ../browser-extension/bridge.js && node --check ../browser-extension/popup.js",
     "build": "node build-agent-bundle.mjs"
   }
 }
