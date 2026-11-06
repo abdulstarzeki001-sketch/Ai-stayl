@@ -18,7 +18,7 @@ export default {
   async fetch(request, env) {
     if (request.method === "GET") {
       const pathname = new URL(request.url).pathname;
-      if (pathname === "/") return Response.redirect("https://ai-stayl-app.pages.dev/", 302);
+      if (pathname === "/") return Response.redirect(new URL("/agent.html", request.url).toString(), 302);
       if (Object.prototype.hasOwnProperty.call(STATIC_PAGES, pathname)) {
         const type = pathname.endsWith(".html") ? "text/html" : pathname.endsWith(".css") ? "text/css" : "application/javascript";
         return new Response(STATIC_PAGES[pathname], {status:200,headers:{"content-type":type+"; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
