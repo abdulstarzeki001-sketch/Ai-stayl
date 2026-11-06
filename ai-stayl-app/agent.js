@@ -5,7 +5,7 @@ const SUPABASE_KEY = "sb_publishable_1PPYe8Tod6yDvegWzv5p-g_EIgu9zgE";
 const API_URL = "https://agent-ai-stayl.abdulstarzeki001.workers.dev";
 const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = id => document.getElementById(id);
-let user = null, sources = [], busy = false, lastResults = [];
+let user = null, sources = [], busy = false, lastResults = [], chatTurns = [];
 
 function toast(text) {
   $("toast").textContent = String(text).slice(0, 350);
@@ -124,6 +124,7 @@ async function loadHistory() {
       $("conversation").replaceChildren();
       message("user", run.question);
       message("assistant", run.answer || "لم يُحفظ جواب لهذه المهمة", run.sources || []);
+      chatTurns = [{role:"user",content:run.question},{role:"assistant",content:run.answer || ""}];
       log("استرجاع بحث سابق", new Date(run.created_at).toLocaleString("ar-IQ"));
     };
     $("history").append(b);
@@ -156,7 +157,7 @@ async function auth(mode) {
 $("signIn").onclick = () => auth("in");
 $("signUp").onclick = () => auth("up");
 $("logout").onclick = async () => { await db.auth.signOut(); user = null; sources = []; renderSources(); await boot(); };
-$("newRun").onclick = () => { $("conversation").replaceChildren(); sources = []; renderSources(); $("question").value = ""; toast("بدأت مهمة جديدة"); };
+$("newRun").onclick = () => { $("conversation").replaceChildren(); sources = []; chatTurns = []; renderSources(); $("question").value = ""; toast("بدأت مهمة جديدة"); };
 
 document.querySelectorAll(".tab").forEach(b => {
   b.onclick = () => {
@@ -181,16 +182,22 @@ $("searchForm").addEventListener("submit", async e => {
 $("questionForm").addEventListener("submit", async e => {
   e.preventDefault(); if (busy || !user) return;
   const question = $("question").value.trim(); if (!question) return;
+  const history = chatTurns.slice(-4);
   message("user", question); $("question").value = "";
   setBusy(true, sources.length ? "تحليل المصادر المحددة" : "البحث التلقائي في الويب");
   log("بداية Research Agent", sources.length ? sources.length + " مصادر اختارها المستخدم" : "بحث + قراءة + إجابة");
   try {
-    const answer = await api("research", { question, pages: sources });
+    const answer = await api("research", { question, pages: sources, mode: $("agentMode").value, history });
     for (const step of answer.steps || []) log(step.message || step.action, step.status || "");
     if (Array.isArray(answer.sources) && answer.sources.length && !sources.length) {
       renderResults(answer.sources.map(s => ({...s,snippet:"مصدر مستخدم في الإجابة؛ اضغط قراءة المصدر لإضافته للتدقيق اليدوي."})));
     }
     message("assistant", answer.reply, answer.sources || []);
+    chatTurns.push({role:"user",content:question},{role:"assistant",content:answer.reply || ""});
+    chatTurns = chatTurns.slice(-4);
+    $("modelInfo").textContent = (answer.model?.includes("120b") ? "GPT-OSS 120B" : "Llama 8B") +
+      (answer.modelFallback ? " · احتياطي" : "") + " · " + (answer.sources || []).length + " مصادر";
+    log("النموذج المستخدم", answer.model || "غير محدد");
     await saveRun(question, answer.reply, answer.sources || []);
     log("اكتمال الإجابة", "المصادر المرجعية: " + (answer.sources || []).length);
   } catch (e) { message("assistant", "تعذر إكمال المهمة: " + e.message); log("فشل الإجابة", e.message); }
