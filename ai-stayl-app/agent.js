@@ -182,9 +182,14 @@ $("questionForm").addEventListener("submit", async e => {
   e.preventDefault(); if (busy || !user) return;
   const question = $("question").value.trim(); if (!question) return;
   message("user", question); $("question").value = "";
-  setBusy(true, "تحليل الأدلة"); log("إرسال سؤال إلى نموذج AI", sources.length + " مصادر");
+  setBusy(true, sources.length ? "تحليل المصادر المحددة" : "البحث التلقائي في الويب");
+  log("بداية Research Agent", sources.length ? sources.length + " مصادر اختارها المستخدم" : "بحث + قراءة + إجابة");
   try {
-    const answer = await api("answer", { question, pages: sources });
+    const answer = await api("research", { question, pages: sources });
+    for (const step of answer.steps || []) log(step.message || step.action, step.status || "");
+    if (Array.isArray(answer.sources) && answer.sources.length && !sources.length) {
+      renderResults(answer.sources.map(s => ({...s,snippet:"مصدر مستخدم في الإجابة؛ اضغط قراءة المصدر لإضافته للتدقيق اليدوي."})));
+    }
     message("assistant", answer.reply, answer.sources || []);
     await saveRun(question, answer.reply, answer.sources || []);
     log("اكتمال الإجابة", "المصادر المرجعية: " + (answer.sources || []).length);
