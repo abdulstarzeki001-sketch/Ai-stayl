@@ -207,7 +207,7 @@ function sourceList(pages) {
       url: u.origin + u.pathname,
       title: String(p.title || "").slice(0, 180),
       text: redact(String(p.text || p.snippet || "")).slice(0, 5200),
-      evidenceType: p.status === "snippet" ? "search_snippet" : p.status === "page" ? "read_page" : "selected_by_user"
+      evidenceType: p.evidenceType === "read_page" || p.evidenceType === "search_snippet" ? p.evidenceType : p.status === "snippet" ? "search_snippet" : p.status === "page" ? "read_page" : "selected_by_user"
     };
   }).filter(Boolean);
 }
