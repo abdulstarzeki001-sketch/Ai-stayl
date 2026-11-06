@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "AI Stayl Browser Bridge",
+  "version": "0.1.0",
+  "description": "Read only explicitly selected HTTPS tabs and import text to AI Stayl Research Agent.",
+  "permissions": [
+    "tabs",
+    "scripting",
+    "storage"
+  ],
+  "optional_host_permissions": [
+    "https://*/*"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://ai-stayl-app.pages.dev/*",
+        "https://*.ai-stayl-app.pages.dev/*",
+        "https://agent-ai-stayl.abdulstarzeki001.workers.dev/*"
+      ],
+      "js": [
+        "bridge.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
