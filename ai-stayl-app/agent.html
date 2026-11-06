@@ -23,14 +23,14 @@
       <div class="identity"><span id="userEmail">جارٍ التحقق...</span><button type="button" id="logout" class="small-button">خروج</button></div>
     </aside>
     <main class="workspace">
-      <header class="topbar"><div><h1>AI Research Workspace</h1><p>اقرأ مصادر متعددة، ابحث بالويب، واسأل عن المحتوى المدعوم بالأدلة</p></div><div class="live"><i></i><span id="connection">جارٍ الاتصال</span></div></header>
+      <header class="topbar"><div><h1>AI Research Workspace</h1><p>اكتب سؤالك مرة واحدة: الوكيل يبحث ويقرأ المصادر ويجاوب بالأدلة، أو يحلل تبويباتك المختارة</p></div><div class="live"><i></i><span id="connection">جارٍ الاتصال</span></div></header>
       <div class="columns">
         <section class="chat-panel">
           <div class="panel-header"><h2>المحادثة والتحليل</h2><button id="newRun" type="button" class="small-button">＋ مهمة جديدة</button></div>
           <div id="conversation" class="conversation" role="log" aria-live="polite">
-            <div class="welcome"><div class="glow-icon">✧</div><h2>شنو تريد أفحص لك اليوم؟</h2><p>ابحث عن موضوع، أو أضف رابطاً، أو استورد صفحات المتصفح ثم اسأل الوكيل عن النتائج. الأدلة تبقى منفصلة عن الأوامر.</p></div>
+            <div class="welcome"><div class="glow-icon">✧</div><h2>شنو تريد أفحص لك اليوم؟</h2><p>اسأل مباشرة حتى يبدأ بحثاً تلقائياً. وإذا أضفت روابط أو تبويبات، يعتمدها كمصادر بدل البحث العام. قراءة فقط؛ بلا تغيير أي موقع.</p></div>
           </div>
-          <form id="questionForm" class="composer"><label for="question" class="sr-only">السؤال</label><textarea id="question" rows="3" maxlength="4000" placeholder="مثلاً: قارن المصادر واشرح كيف يعمل التحقق من QR، مع الأدلة..."></textarea><div class="send-row"><span id="modelInfo">Cloudflare Workers AI · قراءة فقط</span><button type="submit" id="askButton" class="primary">تحليل وإجابة ↗</button></div></form>
+          <form id="questionForm" class="composer"><label for="question" class="sr-only">السؤال</label><textarea id="question" rows="3" maxlength="4000" placeholder="مثلاً: ابحث عن أحدث وثائق Cloudflare وقارنها ثم اذكر مصادر الإجابة..."></textarea><div class="send-row"><span id="modelInfo">بحث تلقائي + تحليل مصادر · قراءة فقط</span><button type="submit" id="askButton" class="primary">تحليل وإجابة ↗</button></div></form>
         </section>
         <section class="research-panel">
           <div class="tabs"><button class="tab active" data-tab="pages" type="button">الصفحات</button><button class="tab" data-tab="search" type="button">بحث الويب</button><button class="tab" data-tab="audit" type="button">سجل الأدوات</button></div>

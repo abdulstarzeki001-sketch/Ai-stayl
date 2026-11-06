@@ -91,3 +91,85 @@ test("answer uses AI binding and returns citations from approved snapshots",asyn
     assert.ok(b.reply.includes("[1]"));
   } finally { reset(); }
 });
+
+
+test("automated research reads search results and cites actual pages", async () => {
+  const reset=stubFetch((url, opts)=>{
+    if(url.includes("/auth/v1/user")) return authenticated(url,opts);
+    if(url.includes("bing.com/search?format=rss")) return new Response(
+      '<rss><channel><item><title>Official Guide</title><link>https://www.example.org/guide</link><description>Guide snippet</description></item></channel></rss>',
+      {status:200}
+    );
+    if(url==="https://www.example.org/guide") return new Response(
+      '<html><head><title>Official Guide</title></head><body><main>Audited source text</main></body></html>',
+      {status:200,headers:{"content-type":"text/html"}}
+    );
+    throw new Error("unexpected outbound URL " + url);
+  });
+  try {
+    const response=await agent.fetch(req({action:"research",question:"ما مضمون الدليل؟",pages:[]}),base);
+    assert.equal(response.status,200);
+    const result=await response.json();
+    assert.equal(result.provider,"bing_rss");
+    assert.equal(result.sources.length,1);
+    assert.equal(result.sources[0].url,"https://www.example.org/guide");
+    assert.equal(result.steps.at(-1).action,"answer");
+  } finally { reset(); }
+});
+
+test("research with user-selected tabs does not search the web",async()=>{
+  let requests=0;
+  const reset=stubFetch((url,opts)=>{
+    requests++;
+    return authenticated(url,opts);
+  });
+  try{
+    const response=await agent.fetch(req({action:"research",question:"لخص الصفحة",pages:[{
+      url:"https://www.example.org/readme",title:"Readme",text:"Sample text"
+    }]}),base);
+    assert.equal(response.status,200);
+    const body=await response.json();
+    assert.equal(body.provider,"selected_pages");
+    assert.equal(body.sources.length,1);
+    assert.equal(requests,1);
+  }finally{reset();}
+});
+
+test("Brave Search uses server-side key and returns only sanitized public URLs",async()=>{
+  let calls=0;
+  const reset=stubFetch((url,opts)=>{
+    calls++;
+    if(url.includes("/auth/v1/user")) return authenticated(url,opts);
+    assert.ok(url.startsWith("https://api.search.brave.com/res/v1/web/search?"));
+    assert.equal(opts.headers["X-Subscription-Token"],"secret-for-tests-only");
+    return new Response(JSON.stringify({web:{results:[
+      {title:"Trusted site",url:"https://www.example.org/guide?session=private",description:"Summary"},
+      {title:"Private",url:"https://127.0.0.1/admin",description:"Should be removed"}
+    ]}}),{status:200,headers:{"content-type":"application/json"}});
+  });
+  try{
+    const response=await agent.fetch(req({action:"search",query:"security guidelines"}),{
+      ...base,BRAVE_SEARCH_API_KEY:"secret-for-tests-only"
+    });
+    assert.equal(response.status,200);
+    const body=await response.json();
+    assert.equal(body.results.length,1);
+    assert.equal(body.results[0].url,"https://www.example.org/guide");
+    assert.ok(!JSON.stringify(body).includes("secret-for-tests-only"));
+    assert.equal(calls,2);
+  }finally{reset();}
+});
+
+test("research handles search failure without fabricated citations",async()=>{
+  const reset=stubFetch((url,opts)=>{
+    if(url.includes("/auth/v1/user")) return authenticated(url,opts);
+    return new Response("Unavailable",{status:503});
+  });
+  try{
+    const response=await agent.fetch(req({action:"research",question:"Latest developments"}),base);
+    assert.equal(response.status,200);
+    const data=await response.json();
+    assert.deepEqual(data.sources,[]);
+    assert.equal(data.steps[0].status,"unavailable");
+  }finally{reset();}
+});

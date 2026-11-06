@@ -101,9 +101,31 @@ async function readPage(raw) {
   const title = unescapeHtml((html.match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [,""])[1]).trim().slice(0, 200);
   return { url: url.origin + url.pathname, title, text: redact(stripHtml(html)).slice(0, 12000) };
 }
-async function webSearch(query) {
+async function braveSearch(query, env) {
+  if (!env?.BRAVE_SEARCH_API_KEY) return null;
+  const target = "https://api.search.brave.com/res/v1/web/search?q=" +
+    encodeURIComponent(query.slice(0, 250)) + "&count=6&safesearch=moderate";
+  const response = await fetch(target, {
+    method: "GET", redirect: "manual",
+    headers: { Accept: "application/json", "X-Subscription-Token": env.BRAVE_SEARCH_API_KEY },
+    signal: AbortSignal.timeout(9000)
+  });
+  if (!response.ok) throw new Error("Brave Search API error: " + response.status);
+  const results = (await response.json())?.web?.results || [];
+  return results.slice(0, 8).map(r => {
+    const url = publicUrl(r.url);
+    return url ? {
+      title: stripHtml(String(r.title || "")).slice(0, 180),
+      url: url.origin + url.pathname,
+      snippet: redact(stripHtml(String(r.description || ""))).slice(0, 450)
+    } : null;
+  }).filter(Boolean).slice(0, 6);
+}
+
+async function webSearch(query, env = {}) {
   const q = String(query || "").trim().slice(0, 250);
   if (!q) throw new Error("أدخل عبارة البحث");
+  if (env.BRAVE_SEARCH_API_KEY) return braveSearch(q, env);
   const u = "https://www.bing.com/search?format=rss&q=" + encodeURIComponent(q);
   const r = await fetch(u, { method: "GET", redirect: "manual", headers: { Accept: "application/rss+xml,text/xml" }, signal: AbortSignal.timeout(9000) });
   if (!r.ok) throw new Error("محرك البحث غير متاح حالياً");
@@ -156,6 +178,58 @@ async function answer(question, pages, env) {
   });
   return { reply: String(result?.response || "لم يصل جواب من النموذج"), sources: sources.map((s, i) => ({ id: i + 1, title: s.title, url: s.url })) };
 }
+/**
+ * One-request read-only research pipeline:
+ * 1) honor selected tab snapshots; otherwise search the public web,
+ * 2) read at most four public pages (no redirects, credentials, or forms),
+ * 3) synthesize only grounded evidence with numbered source links.
+ * Failed reads are flagged as search snippets; no fake page inspection.
+ */
+async function research(question, pages, env) {
+  const q = typeof question === "string" ? question.trim() : "";
+  if (!q || q.length > 4000) throw new Error("السؤال مطلوب وبحد أقصى 4000 حرف");
+  let selected = sourceList(pages);
+  const steps = [];
+  let provider = "selected_pages";
+  if (!selected.length) {
+    provider = env.BRAVE_SEARCH_API_KEY ? "brave" : "bing_rss";
+    steps.push({ action: "search", status: "running", message: "البحث عن مصادر مرتبطة بالسؤال" });
+    let found = [];
+    try { found = await webSearch(q, env); }
+    catch {
+      return {
+        reply: "تعذّر الوصول إلى محرك البحث حالياً. أضف روابط أو استورد تبويبات Chrome ثم أعد السؤال. البحث التلقائي المستقر يتطلب إعداد Brave Search API.",
+        sources: [], steps: [{action:"search",status:"unavailable",message:"مزود البحث غير متاح"}], provider
+      };
+    }
+    steps[0] = {action:"search",status:"ok",message:"تم العثور على " + found.length + " نتائج"};
+    const inspected = await Promise.allSettled(found.slice(0, 4).map(async r => {
+      try {
+        const page = await readPage(r.url);
+        if (!page.text) throw new Error("صفحة فارغة");
+        return {url:page.url,title:page.title||r.title,text:page.text.slice(0,5200),status:"page"};
+      } catch {
+        return {url:r.url,title:r.title,text:"[SEARCH SNIPPET ONLY — full page NOT read]\n"+r.snippet,status:"snippet"};
+      }
+    }));
+    const used = inspected.filter(x=>x.status==="fulfilled").map(x=>x.value);
+    selected = sourceList(used);
+    steps.push({action:"read",status:"ok",message:"قراءة " + used.filter(x=>x.status==="page").length +
+      " صفحات؛ " + used.filter(x=>x.status==="snippet").length + " مقتطفات بحث فقط"});
+  } else {
+    steps.push({action:"sources",status:"ok",message:"تحليل " + selected.length + " مصادر اختارها المستخدم"});
+  }
+  if (!selected.length) {
+    return {
+      reply: "ما حصلت مصادر قابلة للتحقق من السؤال. أضف روابط أو تبويبات من المتصفح حتى أجاوبك بأدلة بدل التخمين.",
+      sources:[],steps,provider
+    };
+  }
+  const result = await answer(q, selected, env);
+  steps.push({action:"answer",status:"ok",message:"اكتملت الإجابة مع " + result.sources.length + " مصادر"});
+  return { ...result, steps, provider };
+}
+
 export default {
   async fetch(request, env) {
     const origin = request.headers.get("origin");
@@ -170,7 +244,8 @@ export default {
       const body = await request.json();
       if (!body || typeof body !== "object") return reply({ error: "Invalid body" }, 400, origin);
       if (body.action === "read") return reply({ page: await readPage(body.url) }, 200, origin);
-      if (body.action === "search") return reply({ results: await webSearch(body.query) }, 200, origin);
+      if (body.action === "search") return reply({ results: await webSearch(body.query, env) }, 200, origin);
+      if (body.action === "research") return reply(await research(body.question, body.pages, env), 200, origin);
       if (body.action === "answer") return reply(await answer(body.question, body.pages, env), 200, origin);
       return reply({ error: "Unknown action" }, 400, origin);
     } catch (error) {
