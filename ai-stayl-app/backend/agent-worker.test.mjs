@@ -257,3 +257,80 @@ test("only irrelevant results fail closed without invoking AI",async()=>{
     assert.equal(aiCalls,0);
   }finally{reset();}
 });
+
+
+test("smart model returns verified cited answer from GPT OSS chat completions", async()=>{
+  const calls=[];
+  const env={...base,AI:{
+    async run(model,params){
+      calls.push({model,params});
+      return {choices:[{message:{content:"تفصيل موثّق [1]. إحالة غير موجودة [99]."}}]};
+    }
+  }};
+  const reset=stubFetch((url,opts)=>authenticated(url,opts));
+  try{
+    const response=await agent.fetch(req({action:"research",question:"قارن الدليلين",mode:"smart",
+      pages:[{url:"https://www.example.org/page",title:"Page",text:"Trusted text"}],
+      history:[{role:"user",content:"اهتم بمحتوى الصفحة"},{role:"assistant",content:"تم"}]}),env);
+    assert.equal(response.status,200);
+    const body=await response.json();
+    assert.equal(calls.length,1);
+    assert.equal(calls[0].model,"@cf/openai/gpt-oss-120b");
+    assert.ok(calls[0].params.messages.length>=4);
+    assert.equal(body.model,"@cf/openai/gpt-oss-120b");
+    assert.equal(body.modelFallback,false);
+    assert.ok(body.reply.includes("[1]"));
+    assert.ok(!body.reply.includes("[99]"));
+  }finally{reset();}
+});
+
+test("smart model outage falls back to fast model and is disclosed",async()=>{
+  const used=[];
+  const env={...base,AI:{async run(model){
+    used.push(model);
+    if(model.includes("120b"))throw new Error("Model temporarily unavailable");
+    return {response:"جواب احتياطي [1]"};
+  }}};
+  const reset=stubFetch((url,opts)=>authenticated(url,opts));
+  try{
+    const response=await agent.fetch(req({action:"research",question:"اشرح المصدر",mode:"smart",
+      pages:[{url:"https://www.example.org/doc",title:"Doc",text:"Evidence"}]}),env);
+    assert.equal(response.status,200);
+    const out=await response.json();
+    assert.equal(out.modelFallback,true);
+    assert.equal(out.model,"@cf/meta/llama-3.1-8b-instruct-fast");
+    assert.equal(used.length,2);
+  }finally{reset();}
+});
+
+test("smart mode uses two focused searches and combines relevant read pages",async()=>{
+  const searchQueries=[];
+  const reset=stubFetch((url,opts)=>{
+    if(url.includes("/auth/v1/user"))return authenticated(url,opts);
+    if(url.includes("api.search.brave.com")){
+      const q=new URL(url).searchParams.get("q");
+      searchQueries.push(q);
+      const page=q.includes("official")?"https://developers.cloudflare.com/workers-ai/models/":"https://developers.cloudflare.com/workers-ai/";
+      return new Response(JSON.stringify({web:{results:[
+        {title:"Cloudflare Workers AI documentation",url:page,description:"Workers AI docs and updates"}
+      ]}}),{status:200,headers:{"content-type":"application/json"}});
+    }
+    if(url.includes("developers.cloudflare.com")){
+      return new Response("<html><title>Cloudflare Workers AI documentation</title><body>Workers AI documentation updated recently.</body></html>",{status:200,headers:{"content-type":"text/html"}});
+    }
+    throw Error("Unexpected URL "+url);
+  });
+  try{
+    const env={...base,BRAVE_SEARCH_API_KEY:"fake-secret-for-mock",AI:{async run(model){
+      assert.equal(model,"@cf/openai/gpt-oss-120b");
+      return {choices:[{message:{content:"المصدران يشرحان Workers AI [1] [2]."}}]};
+    }}};
+    const response=await agent.fetch(req({action:"research",question:"أحدث Cloudflare Workers AI",mode:"smart"}),env);
+    assert.equal(response.status,200);
+    const out=await response.json();
+    assert.equal(searchQueries.length,2);
+    assert.equal(out.sources.length,2);
+    assert.ok(out.steps.some(x=>x.action==="plan"));
+    assert.equal(out.modelFallback,false);
+  }finally{reset();}
+});
