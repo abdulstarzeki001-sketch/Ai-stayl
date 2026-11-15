@@ -45,3 +45,21 @@ jobs:
           python-version: '3.12'
       - name: Test local device authentication and origins
         run: python -m unittest discover -s star-ai-local -p 'test_*.py' -v
+
+  windows-bridge-tests:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Parse Windows PowerShell launcher
+        shell: pwsh
+        run: |
+          $source = [System.IO.File]::ReadAllText((Join-Path $PWD 'star-ai-local/start-star-ai.ps1'))
+          [void][scriptblock]::Create($source)
+      - name: Check local bridge identity tests on Windows
+        shell: pwsh
+        run: python -m unittest discover -s star-ai-local -p 'test_*.py' -v
