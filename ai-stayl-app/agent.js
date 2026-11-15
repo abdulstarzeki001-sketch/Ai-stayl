@@ -195,7 +195,7 @@ async function askLocalDevice(action) {
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({action}),
     });
-    if (response.status === 409) return "يوجد طلب جهاز ينتظر الموافقة.";
+    if (response.status === 409) return "يوجد طلب جهاز قيد التنفيذ.";
     if (!response.ok) return "تعذر تنفيذ الطلب على الجهاز.";
     return (await response.json()).reply;
   } catch {
@@ -220,7 +220,7 @@ $("questionForm").addEventListener("submit", async e => {
       return;
     }
     if ([...localDeviceCommands.values()].includes(action)) {
-      setBusy(true, "بانتظار موافقتك على الجهاز");
+      setBusy(true, "جارٍ التنفيذ على الجهاز");
       message("assistant", await askLocalDevice(action));
       return;
     }
