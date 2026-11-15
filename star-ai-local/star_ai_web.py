@@ -174,7 +174,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Vary", "Origin")
             if self.command == "OPTIONS":
                 self.send_header("Access-Control-Allow-Methods", "POST")
-                self.send_header("Access-Control-Allow-Headers", "Content-Type")
+                self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Star-Token")
                 if self.headers.get("Access-Control-Request-Private-Network") == "true":
                     self.send_header("Access-Control-Allow-Private-Network", "true")
         self.end_headers()
@@ -200,6 +200,10 @@ class Handler(BaseHTTPRequestHandler):
         return (self.headers.get("Host") == self.server.host
                 and self.headers.get("Origin") in DEVICE_ORIGINS)
 
+    def device_authenticated(self):
+        return (self.device_origin_allowed()
+                and secrets.compare_digest(self.headers.get("X-Star-Token", ""), TOKEN))
+
     def do_OPTIONS(self):
         if (self.path == "/device-action" and self.device_origin_allowed()
                 and self.headers.get("Access-Control-Request-Method") == "POST"):
@@ -208,7 +212,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send(403)
 
     def device_action(self):
-        if not self.device_origin_allowed() or self.headers.get_content_type() != "application/json":
+        if not self.device_authenticated() or self.headers.get_content_type() != "application/json":
             self.send(403)
             return
         try:
@@ -229,6 +233,16 @@ class Handler(BaseHTTPRequestHandler):
             tool, args = DEVICE_ACTIONS[action]
             if platform.system() != "Windows":
                 reply = "أوامر الجهاز متاحة على Windows."
+            elif action not in {"status", "diagnostics"} and not (
+                ctypes.windll.user32.MessageBoxW(
+                    None,
+                    f"AI Stayl requests a device action:\n{action}\nAllow this action?",
+                    "STAR AI - Local Approval",
+                    0x24,
+                ) == 6
+            ):
+                star_ai.audit("denied", f"device:{action}")
+                reply = "تم رفض الإجراء من نافذة تأكيد Windows."
             elif action in {"diagnostics", "terminal", "kali-terminal", "troubleshoot", "flush-dns", "task-manager", "resource-monitor"}:
                 reply = run_support_action(action)
             elif action == "status":

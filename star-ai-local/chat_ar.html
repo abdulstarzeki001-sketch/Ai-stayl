@@ -21,11 +21,20 @@
 <button type="button" data-command="/status">حالة الجهاز</button>
 <button type="button" data-command="/kali">فحص Kali</button>
 <button type="button" data-command="افتح المفكرة">فتح المفكرة</button>
+<button type="button" id="copyPairingToken">نسخ رمز الربط الآمن</button>
 </div>
 </form>
 </main>
 <script>
 const token = "__STAR_TOKEN__";
+document.querySelector("#copyPairingToken").addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(token);
+    alert("نُسخ رمز الربط. استخدمه فقط داخل موقع AI Stayl الذي تثق به.");
+  } catch {
+    window.prompt("انسخ رمز الربط واستخدمه داخل AI Stayl فقط:", token);
+  }
+});
 const chat = document.querySelector("#chat");
 const input = document.querySelector("#message");
 const permission = document.querySelector("#permission");

@@ -2,14 +2,17 @@ name: AI Stayl Agent Tests
 on:
   push:
     branches:
+      - main
       - safe-ai-stayl
       - 'feature/agent-browser-research-*'
     paths:
       - 'ai-stayl-app/backend/**'
+      - 'star-ai-local/**'
       - '.github/workflows/agent-tests.yml'
   pull_request:
     paths:
       - 'ai-stayl-app/backend/**'
+      - 'star-ai-local/**'
       - '.github/workflows/agent-tests.yml'
 jobs:
   worker-tests:
@@ -24,3 +27,15 @@ jobs:
       - name: Validate worker and run isolated tests
         run: npm test
         working-directory: ai-stayl-app/backend
+
+  local-security-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test local device authentication and origins
+        run: python -m unittest discover -s star-ai-local -p 'test_*.py' -v

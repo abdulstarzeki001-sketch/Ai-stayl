@@ -198,17 +198,31 @@ const localDeviceCommands = new Map([
 ]);
 
 async function askLocalDevice(action) {
+  // The pairing secret is shown only by the local STAR AI page. Never put it in a URL.
+  let pairingToken = sessionStorage.getItem("star_ai_pair_token");
+  if (!pairingToken) {
+    pairingToken = window.prompt(
+      "افتح http://127.0.0.1:17849/ على جهاز Windows واضغط «نسخ رمز الربط الآمن»، ثم الصقه هنا:"
+    )?.trim();
+    if (!pairingToken) return "أُلغي الربط. لم يُرسل أي أمر إلى الجهاز.";
+    sessionStorage.setItem("star_ai_pair_token", pairingToken);
+  }
   try {
     const response = await fetch("http://127.0.0.1:17849/device-action", {
       method: "POST",
-      headers: {"Content-Type": "application/json"},
+      headers: {"Content-Type": "application/json", "X-Star-Token": pairingToken},
       body: JSON.stringify({action}),
+      cache: "no-store",
     });
+    if (response.status === 403) {
+      sessionStorage.removeItem("star_ai_pair_token");
+      return "رُفض الربط. افتح صفحة STAR AI المحلية وانسخ رمز الربط الحالي.";
+    }
     if (response.status === 409) return "يوجد طلب جهاز قيد التنفيذ.";
     if (!response.ok) return "تعذر تنفيذ الطلب على الجهاز.";
     return (await response.json()).reply;
   } catch {
-    return "تعذر الاتصال بـ STAR AI على هذا الجهاز. شغّل STAR AI واسمح بالوصول إلى الشبكة المحلية إذا طلب المتصفح.";
+    return "تعذر الاتصال بـ STAR AI المحلي؛ شغّل الخدمة على Windows وتحقق من سماح المتصفح بالاتصال المحلي.";
   }
 }
 
