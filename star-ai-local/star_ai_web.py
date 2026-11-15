@@ -3,7 +3,6 @@ import json
 import platform
 import secrets
 import threading
-import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import star_ai
@@ -201,10 +200,7 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     with ThreadingHTTPServer(("127.0.0.1", PORT), Handler) as server:
         server.host = f"127.0.0.1:{server.server_port}"
-        url = f"http://{server.host}/"
-        print(url, flush=True)
         star_ai.audit("startup", f"browser:{star_ai.MODEL}")
-        webbrowser.open(url)
         try:
             server.serve_forever()
         except KeyboardInterrupt:
