@@ -6,3 +6,11 @@
 .mode-select select{max-width:210px;min-width:125px;background:#232944;border:1px solid #53568a;color:#eef1ff;padding:7px 10px;border-radius:9px;font:inherit;font-size:12px;cursor:pointer}
 .mode-select select:focus-visible{outline:2px solid #7e71de;outline-offset:2px}
 @media(max-width:700px){.mode-select select{max-width:170px;font-size:11px}.mode-select span{font-size:9px}}
+
+/* Paired device selector: compact on desktop and mobile */
+.device-connect-panel{display:flex;align-items:center;flex-wrap:wrap;gap:8px;border-bottom:1px solid var(--line);padding:10px 20px;background:#101b2c}
+.device-connect-panel label{font-size:12px;white-space:nowrap;color:#dceafe}
+.device-connect-panel select,.device-connect-panel input{min-width:0;background:#0d1727;color:var(--text);border:1px solid #344864;border-radius:9px;padding:9px;font:inherit}
+.device-connect-panel input{direction:ltr;flex:1 1 245px}
+.device-connect-panel #deviceStatus{font-size:11px;color:#9ac4f2;overflow-wrap:anywhere}
+@media(max-width:700px){.device-connect-panel{padding:10px;gap:7px}.device-connect-panel label{width:100%}.device-connect-panel select{flex:1 1 100%}.device-connect-panel input{flex:1 1 100%}}
