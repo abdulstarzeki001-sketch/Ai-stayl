@@ -179,11 +179,45 @@ $("searchForm").addEventListener("submit", async e => {
   catch (e) { toast(e.message); log("تعذر إجراء البحث", e.message); const a = document.createElement("a"); a.href = "https://www.google.com/search?q=" + encodeURIComponent(query); a.target="_blank"; a.rel="noopener noreferrer"; a.textContent="فتح البحث في المتصفح"; $("results").replaceChildren(a); }
   finally { setBusy(false); }
 });
+const localDeviceCommands = new Map([
+  ["افتح المفكرة", "notepad"],
+  ["افتح الحاسبة", "calculator"],
+  ["افتح مستكشف الملفات", "explorer"],
+  ["افتح powershell", "powershell"],
+  ["/kali", "kali"],
+  ["/status", "status"],
+]);
+
+async function askLocalDevice(action) {
+  try {
+    const response = await fetch("http://127.0.0.1:17849/device-action", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({action}),
+    });
+    if (response.status === 409) return "يوجد طلب جهاز ينتظر الموافقة.";
+    if (!response.ok) return "تعذر تنفيذ الطلب على الجهاز.";
+    return (await response.json()).reply;
+  } catch {
+    return "تعذر الاتصال بـ STAR AI على هذا الجهاز. شغّل STAR AI واسمح بالوصول إلى الشبكة المحلية إذا طلب المتصفح.";
+  }
+}
+
 $("questionForm").addEventListener("submit", async e => {
   e.preventDefault(); if (busy || !user) return;
   const question = $("question").value.trim(); if (!question) return;
   const history = chatTurns.slice(-4);
   message("user", question); $("question").value = "";
+  const action = localDeviceCommands.get(question.toLowerCase().replace(/[أإآ]/g, "ا"));
+  if (action) {
+    setBusy(true, "بانتظار موافقتك على الجهاز");
+    try {
+      message("assistant", await askLocalDevice(action));
+    } finally {
+      setBusy(false);
+    }
+    return;
+  }
   setBusy(true, sources.length ? "تحليل المصادر المحددة" : "البحث التلقائي في الويب");
   log("بداية Research Agent", sources.length ? sources.length + " مصادر اختارها المستخدم" : "بحث + قراءة + إجابة");
   try {

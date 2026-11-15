@@ -1,4 +1,6 @@
+import ctypes
 import json
+import platform
 import secrets
 import threading
 import webbrowser
@@ -8,6 +10,31 @@ import star_ai
 
 PAGE = (star_ai.BASE / "chat_ar.html").read_text(encoding="utf-8")
 PORT = 17849
+DEVICE_ORIGINS = {
+    "https://agent-ai-stayl.abdulstarzeki001.workers.dev",
+    "https://abdulstarzeki001-sketch.github.io",
+}
+DEVICE_ACTIONS = {
+    "notepad": ("فتح المفكرة", "open_app", {"app": "notepad"}),
+    "calculator": ("فتح الحاسبة", "open_app", {"app": "calculator"}),
+    "explorer": ("فتح مستكشف الملفات", "open_app", {"app": "explorer"}),
+    "powershell": ("فتح PowerShell", "open_app", {"app": "powershell"}),
+    "kali": ("قراءة اسم المستخدم وإصدار النواة من Kali", "kali_status", {}),
+    "status": ("قراءة إصدار Windows", "system_status", {}),
+}
+DEVICE_LOCK = threading.Lock()
+
+
+def approve_device(label):
+    if platform.system() != "Windows":
+        return False
+    # Default to No and put the confirmation on the Windows desktop.
+    result = ctypes.windll.user32.MessageBoxW(
+        None, f"طلب AI Stayl الوكيل تنفيذ هذا الإجراء:\n{label}",
+        "STAR AI — موافقة على إجراء محلي", 0x4 | 0x100 | 0x10000 | 0x40000,
+    )
+    return result == 6
+
 TOKEN = secrets.token_urlsafe(32)
 LOCK = threading.Lock()
 state = {"busy": False, "output": [], "prompt": None}
@@ -58,6 +85,15 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("X-Frame-Options", "DENY")
+        origin = self.headers.get("Origin")
+        if self.path == "/device-action" and origin in DEVICE_ORIGINS:
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
+            if self.command == "OPTIONS":
+                self.send_header("Access-Control-Allow-Methods", "POST")
+                self.send_header("Access-Control-Allow-Headers", "Content-Type")
+                if self.headers.get("Access-Control-Request-Private-Network") == "true":
+                    self.send_header("Access-Control-Allow-Private-Network", "true")
         self.end_headers()
         self.wfile.write(data)
 
@@ -77,8 +113,56 @@ class Handler(BaseHTTPRequestHandler):
         else:
             self.send(404)
 
+    def device_origin_allowed(self):
+        return (self.headers.get("Host") == self.server.host
+                and self.headers.get("Origin") in DEVICE_ORIGINS)
+
+    def do_OPTIONS(self):
+        if (self.path == "/device-action" and self.device_origin_allowed()
+                and self.headers.get("Access-Control-Request-Method") == "POST"):
+            self.send(204)
+        else:
+            self.send(403)
+
+    def device_action(self):
+        if not self.device_origin_allowed() or self.headers.get_content_type() != "application/json":
+            self.send(403)
+            return
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            if not 0 < length <= 256:
+                raise ValueError
+            payload = json.loads(self.rfile.read(length))
+            action = payload.get("action") if isinstance(payload, dict) else None
+            if not isinstance(action, str) or action not in DEVICE_ACTIONS:
+                raise ValueError
+        except (ValueError, UnicodeError):
+            self.send(400)
+            return
+        if not DEVICE_LOCK.acquire(blocking=False):
+            self.send(409)
+            return
+        try:
+            label, tool, args = DEVICE_ACTIONS[action]
+            if not approve_device(label):
+                reply = "أُلغيت العملية على الجهاز."
+                star_ai.audit("cancelled", f"device:{action}")
+            elif action == "status":
+                reply = f"Windows: {platform.version()}"
+                star_ai.audit("system_status", "device:version")
+            else:
+                reply = star_ai.run_tool(tool, args, approve=lambda _: True)
+        except Exception:
+            reply = "تعذّر تنفيذ الإجراء المحلي."
+        finally:
+            DEVICE_LOCK.release()
+        self.send(200, json.dumps({"reply": reply}, ensure_ascii=False), "application/json")
+
     def do_POST(self):
         global approved
+        if self.path == "/device-action":
+            self.device_action()
+            return
         if not self.authorized() or self.headers.get("Origin") != f"http://{self.server.host}":
             self.send(403)
             return

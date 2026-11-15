@@ -4,7 +4,7 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#080e18"><title>AI Stayl | Research Agent</title>
   <meta name="referrer" content="no-referrer">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://esm.sh; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://esm.sh https://ruosabdszffqdobeqgmz.supabase.co https://agent-ai-stayl.abdulstarzeki001.workers.dev; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://esm.sh; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://esm.sh https://ruosabdszffqdobeqgmz.supabase.co https://agent-ai-stayl.abdulstarzeki001.workers.dev http://127.0.0.1:17849; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'">
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./agent.css">
@@ -30,7 +30,7 @@
           <div id="conversation" class="conversation" role="log" aria-live="polite">
             <div class="welcome"><div class="glow-icon">✧</div><h2>شنو تريد أفحص لك اليوم؟</h2><p>اسأل مباشرة حتى يبدأ بحثاً تلقائياً. وإذا أضفت روابط أو تبويبات، يعتمدها كمصادر بدل البحث العام. قراءة فقط؛ بلا تغيير أي موقع.</p></div>
           </div>
-          <form id="questionForm" class="composer"><label for="question" class="sr-only">السؤال</label><textarea id="question" rows="3" maxlength="4000" placeholder="مثلاً: ابحث عن أحدث وثائق Cloudflare وقارنها ثم اذكر مصادر الإجابة..."></textarea><div class="send-row"><div class="mode-select"><label class="sr-only" for="agentMode">قوة النموذج</label><select id="agentMode" title="وضع ذكي أعمق مقابل وضع أسرع"><option value="smart" selected>ذكي · GPT-OSS 120B</option><option value="fast">سريع · Llama 8B</option></select><span id="modelInfo">بحث موثّق · قراءة فقط</span></div><button type="submit" id="askButton" class="primary">تحليل وإجابة ↗</button></div></form>
+          <form id="questionForm" class="composer"><label for="question" class="sr-only">السؤال</label><textarea id="question" rows="3" maxlength="4000" placeholder="مثلاً: افتح المفكرة، أو ابحث عن أحدث وثائق Cloudflare..."></textarea><div class="send-row"><div class="mode-select"><label class="sr-only" for="agentMode">قوة النموذج</label><select id="agentMode" title="وضع ذكي أعمق مقابل وضع أسرع"><option value="smart" selected>ذكي · GPT-OSS 120B</option><option value="fast">سريع · Llama 8B</option></select><span id="modelInfo">بحث موثّق · قراءة فقط</span></div><button type="submit" id="askButton" class="primary">تحليل وإجابة ↗</button></div></form>
         </section>
         <section class="research-panel">
           <div class="tabs"><button class="tab active" data-tab="pages" type="button">الصفحات</button><button class="tab" data-tab="search" type="button">بحث الويب</button><button class="tab" data-tab="audit" type="button">سجل الأدوات</button></div>
