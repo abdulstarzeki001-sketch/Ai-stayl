@@ -208,19 +208,24 @@ $("questionForm").addEventListener("submit", async e => {
   const question = $("question").value.trim(); if (!question) return;
   const history = chatTurns.slice(-4);
   message("user", question); $("question").value = "";
-  const action = localDeviceCommands.get(question.toLowerCase().replace(/[أإآ]/g, "ا"));
-  if (action) {
-    setBusy(true, "بانتظار موافقتك على الجهاز");
-    try {
-      message("assistant", await askLocalDevice(action));
-    } finally {
-      setBusy(false);
-    }
-    return;
-  }
-  setBusy(true, sources.length ? "تحليل المصادر المحددة" : "البحث التلقائي في الويب");
-  log("بداية Research Agent", sources.length ? sources.length + " مصادر اختارها المستخدم" : "بحث + قراءة + إجابة");
+  setBusy(true, "جارٍ فهم الطلب");
   try {
+    let action = localDeviceCommands.get(question.toLowerCase().replace(/[أإآ]/g, "ا"));
+    if (!action) {
+      const route = await api("route-device", {question});
+      action = route.deviceAction;
+    }
+    if (action === "unsupported") {
+      message("assistant", "أقدر أفتح المفكرة والحاسبة ومستكشف الملفات وPowerShell، وأفحص إصدار Windows ومعلومات Kali.");
+      return;
+    }
+    if ([...localDeviceCommands.values()].includes(action)) {
+      setBusy(true, "بانتظار موافقتك على الجهاز");
+      message("assistant", await askLocalDevice(action));
+      return;
+    }
+    setBusy(true, sources.length ? "تحليل المصادر المحددة" : "البحث التلقائي في الويب");
+    log("بداية Research Agent", sources.length ? sources.length + " مصادر اختارها المستخدم" : "بحث + قراءة + إجابة");
     const answer = await api("research", { question, pages: sources, mode: $("agentMode").value, history });
     for (const step of answer.steps || []) log(step.message || step.action, step.status || "");
     if (Array.isArray(answer.sources) && answer.sources.length && !sources.length) {
