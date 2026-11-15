@@ -1,13 +1,53 @@
-# STAR AI على Windows
+# STAR AI Manager — التحكم المحلي وعن بُعد (Windows + iPhone)
 
-1. شغّل تطبيق Ollama وتأكد من وجود النموذج عبر `ollama list`. حمّل النموذج عند الحاجة عبر `ollama pull qwen3:1.7b`.
-2. من مجلد `star-ai-local` شغّل `py -3 -X utf8 .\star_ai_web.py`.
-3. افتح [صفحة وكيل AI Stayl](https://agent-ai-stayl.abdulstarzeki001.workers.dev/agent.html) على نفس الجهاز واكتب مثلاً «افتح المفكرة».
+**النطاق:** التحكم في **حاسبتك أنت فقط** عبر أوامر محددة. هذا ليس برنامج سطح مكتب بعيد أو تحكمًا غير محدود في الشاشة. لا يُنفَّذ أي أمر Shell عشوائي.
 
-تدعم واجهة المتصفح الكتابة وقراءة الردود من اليمين لليسار. المحادثة تتصل بـ Ollama على الجهاز، وتُحفظ المحادثات والسجلات محلياً. طلبات فتح التطبيقات أو فحص Kali تعرض طلب موافقة داخل الواجهة المحلية. يلزم وجود توزيع `kali-linux` لاستخدام زر فحص Kali.
+## 1. التشغيل المحلي على اللابتوب
 
-## نشر الموقع
+1. ثبّت Python 3 على Windows، وشغّل Ollama. تحقق من النموذج عبر `ollama list`، أو نفّذ `ollama pull qwen3:1.7b`.
+2. افتح PowerShell داخل مجلد `star-ai-local`.
+3. شغّل `./start-star-ai.ps1` (في PowerShell يمكن استخدام `.\start-star-ai.ps1`).
+4. افتح **http://127.0.0.1:17849/** على **نفس اللابتوب**. واجهة STAR AI المحلية تعمل بدون Supabase، والمحادثات تبقى على الجهاز.
+5. لاستخدام واجهة AI Stayl السحابية، افتح [Research Agent](https://agent-ai-stayl.abdulstarzeki001.workers.dev/agent.html)، سجّل الدخول، واختر **على نفس اللابتوب**، ثم اضغط **اختبار وربط**.
+6. من الصفحة المحلية اضغط **نسخ رمز الربط الآمن**، والصقه في الطلب الذي يظهر داخل AI Stayl.
 
-اختر **GitHub Actions** في **Settings → Pages → Build and deployment**. ينشر سير عمل Pages ملفات الواجهة من `ai-stayl-app`. بعد الدمج يمكن تشغيله يدوياً من تبويب Actions.
+عند طلب فتح تطبيق أو تغيير إعداد، تظهر نافذة موافقة على Windows قبل التنفيذ. الأوامر المتاحة محددة مثل فتح المفكرة والحاسبة وPowerShell وWindows Terminal وKali Terminal وعرض التشخيص.
 
-واجهة وكيل البحث على Cloudflare تُنشر من حزمة Worker الحالية. شغّل `npm test` داخل `ai-stayl-app/backend`، ثم انشر `dist/agent-bundle.mjs` على Worker الحالي مع إعداداته الموجودة.
+## 2. التحكم من الآيفون، حتى لو كنت خارج البيت
+
+هذه الطريقة تستخدم **Tailscale Serve** وليس **Funnel**: لا تفتح منفذًا للعالم، ولا تحتاج IP ثابتًا، وتصل فقط الأجهزة المسموح بها داخل شبكة Tailscale الخاصة (tailnet).
+
+1. ثبّت [Tailscale على Windows](https://tailscale.com/docs/install/windows) و[Tailscale على iPhone](https://tailscale.com/download/ios). سجّل الدخول **بالحساب نفسه** على الجهازين.
+2. فعّل اتصال Tailscale على الجهازين. يجب أن يكون اللابتوب مشغّلًا ومتصلًا بالإنترنت.
+3. من إعدادات Tailscale فعّل **MagicDNS** وشهادات **HTTPS** عند الحاجة.
+4. افتح PowerShell داخل `star-ai-local` على Windows، ثم نفّذ:
+   ```powershell
+   .\start-star-ai.ps1 -Remote
+   ```
+5. سيطبع البرنامج رابطًا خاصًا بالشكل `https://laptop.your-tailnet.ts.net/`. **الرابط الفعلي يُنشأ على جهازك؛ لا تفترض اسمًا محددًا.**
+6. على الآيفون شغّل Tailscale VPN، ثم افتح الرابط الخاص في **Safari**. ستظهر واجهة STAR AI المحلية عن بُعد. تستطيع سؤال النموذج المحلي وتشغيل الأدوات المسموحة مع موافقتك.
+7. إذا تريد التحكم من صفحة AI Stayl السحابية نفسها، افتح [Research Agent](https://agent-ai-stayl.abdulstarzeki001.workers.dev/agent.html)، واختر **عن بُعد — Tailscale**، وأدخل الرابط الخاص الذي ظهر على Windows. افتح رابط Tailscale في Safari واضغط **نسخ رمز الربط الآمن**، ثم ارجع إلى AI Stayl واضغط **اختبار وربط**، والصق الرمز.
+8. عند طلب إجراء حساس من الواجهة السحابية سيطلب تأكيدًا واضحًا على الآيفون قبل إرساله. الإجراءات المحددة فقط هي المسموحة.
+
+**إيقاف الوصول البعيد:** أوقف نافذة STAR AI على Windows عبر Ctrl+C. يقوم السكربت بإيقاف `tailscale serve` في الإغلاق الاعتيادي. ولإيقافه يدويًا:
+```powershell
+tailscale serve --https=443 off
+```
+
+## ملاحظات أمنية وتشغيلية
+
+- الربط عن بُعد **مُعطّل افتراضيًا**؛ لا يُفعّل إلا عند تشغيل `start-star-ai.ps1 -Remote`.
+- يستخدم الخادم عنوان `127.0.0.1:17849` فقط، وTailscale Serve هو الوسيط المشفّر. **لا تستخدم Tailscale Funnel** ولا تعمل Port Forwarding لهذا المنفذ.
+- يتأكد الخادم من هوية Tailscale المعلن عنها في `Tailscale-User-Login`، ومن عنوان tailnet المضبوط، ومن رمز ربط مختلف لكل تشغيل. إذا كان مستخدم Tailscale على الآيفون مختلفًا عن مالك اللابتوب فسيرفض الطلب.
+- رمز الربط لا يوضع في الرابط أو GitHub، ويُخزّن في `sessionStorage` في واجهة AI Stayl فقط، وليس تخزينًا دائمًا.
+- يتطلب التحكم الحسّاس عبر AI Stayl موافقة على الآيفون؛ وفي الوضع المحلي تظهر موافقة على Windows. لا تخلط بين الاتصال الناجح والصلاحية بتنفيذ أوامر غير محدودة.
+- إن كان اللابتوب مطفأً، أو Tailscale متوقفًا، أو نافذة Python مغلقة، فلن تعمل الأوامر البعيدة.
+- هذه واجهة إجراءات محددة، **وليست بث شاشة أو تحريك مؤشر الماوس**. إذا أردت مشاركة الشاشة الكاملة فذلك مشروع منفصل باستخدام أداة سطح مكتب بعيد موثوقة.
+- أوامر `/status` و`/diagnostics` تعطي معلومات الجهاز، و`/kali` يتحقق من البيئة؛ بعض وظائف الذكاء الاصطناعي تحتاج Ollama يعمل محليًا.
+- للاختبارات: `python -m unittest discover -s star-ai-local -p "test_*.py" -v` من جذر المشروع، و`npm test` من `ai-stayl-app/backend`.
+
+## النشر السحابي
+
+صفحة AI Stayl العامة تستخدم Cloudflare Worker، ولا تعطيه أي منفذ مباشر إلى جهازك. الرابط البعيد الخاص محفوظ في جلسة المتصفح فقط، ويعمل عند الاتصال بـ Tailscale. عند نشر نسخة جديدة من Worker يجب تضمين AI/Supabase/AI_RATE_LIMITER Bindings الموجودة؛ نشر Wrangler من دون إعداداتها قد يعطّل Research Agent.
+
+راجع [تعليمات Tailscale Serve الرسمية](https://tailscale.com/docs/reference/tailscale-cli/serve).
