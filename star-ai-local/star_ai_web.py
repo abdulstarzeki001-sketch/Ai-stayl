@@ -1,4 +1,3 @@
-import ctypes
 import json
 import platform
 import secrets
@@ -14,25 +13,15 @@ DEVICE_ORIGINS = {
     "https://abdulstarzeki001-sketch.github.io",
 }
 DEVICE_ACTIONS = {
-    "notepad": ("فتح المفكرة", "open_app", {"app": "notepad"}),
-    "calculator": ("فتح الحاسبة", "open_app", {"app": "calculator"}),
-    "explorer": ("فتح مستكشف الملفات", "open_app", {"app": "explorer"}),
-    "powershell": ("فتح PowerShell", "open_app", {"app": "powershell"}),
-    "kali": ("قراءة اسم المستخدم وإصدار النواة من Kali", "kali_status", {}),
-    "status": ("قراءة إصدار Windows", "system_status", {}),
+    "notepad": ("open_app", {"app": "notepad"}),
+    "calculator": ("open_app", {"app": "calculator"}),
+    "explorer": ("open_app", {"app": "explorer"}),
+    "powershell": ("open_app", {"app": "powershell"}),
+    "kali": ("kali_status", {}),
+    "status": ("system_status", {}),
 }
 DEVICE_LOCK = threading.Lock()
 
-
-def approve_device(label):
-    if platform.system() != "Windows":
-        return False
-    # Default to No and put the confirmation on the Windows desktop.
-    result = ctypes.windll.user32.MessageBoxW(
-        None, f"طلب AI Stayl الوكيل تنفيذ هذا الإجراء:\n{label}",
-        "STAR AI — موافقة على إجراء محلي", 0x4 | 0x100 | 0x10000 | 0x40000,
-    )
-    return result == 6
 
 TOKEN = secrets.token_urlsafe(32)
 LOCK = threading.Lock()
@@ -142,10 +131,9 @@ class Handler(BaseHTTPRequestHandler):
             self.send(409)
             return
         try:
-            label, tool, args = DEVICE_ACTIONS[action]
-            if not approve_device(label):
-                reply = "أُلغيت العملية على الجهاز."
-                star_ai.audit("cancelled", f"device:{action}")
+            tool, args = DEVICE_ACTIONS[action]
+            if platform.system() != "Windows":
+                reply = "أوامر الجهاز متاحة على Windows."
             elif action == "status":
                 reply = f"Windows: {platform.version()}"
                 star_ai.audit("system_status", "device:version")
