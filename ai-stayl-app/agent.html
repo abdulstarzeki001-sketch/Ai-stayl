@@ -4,7 +4,7 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#080e18"><title>AI Stayl | Research Agent</title>
   <meta name="referrer" content="no-referrer">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://esm.sh; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://esm.sh https://ruosabdszffqdobeqgmz.supabase.co https://agent-ai-stayl.abdulstarzeki001.workers.dev http://127.0.0.1:17849; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://esm.sh; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://esm.sh https://ruosabdszffqdobeqgmz.supabase.co https://agent-ai-stayl.abdulstarzeki001.workers.dev http://127.0.0.1:17849 https://*.ts.net; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'">
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./agent.css">
@@ -24,6 +24,18 @@
     </aside>
     <main class="workspace">
       <header class="topbar"><div><h1>AI Research Workspace</h1><p>اكتب سؤالك مرة واحدة: الوكيل يبحث ويقرأ المصادر ويجاوب بالأدلة، أو يحلل تبويباتك المختارة</p></div><div class="live"><i></i><span id="connection">جارٍ الاتصال</span></div></header>
+      <section class="device-connect-panel" aria-label="التحكم باللابتوب">
+        <label for="deviceMode"><strong>التحكم بالجهاز</strong></label>
+        <select id="deviceMode" aria-label="نوع اتصال اللابتوب">
+          <option value="local">على نفس اللابتوب</option>
+          <option value="remote">عن بُعد — Tailscale</option>
+        </select>
+        <input id="deviceRemoteUrl" class="hidden" type="url" inputmode="url" autocomplete="off"
+               aria-label="رابط اللابتوب الخاص عبر Tailscale" placeholder="https://laptop.tailnet.ts.net">
+        <button id="deviceConnect" type="button" class="small-button">اختبار وربط</button>
+        <button id="deviceForget" type="button" class="small-button">فصل</button>
+        <span id="deviceStatus" role="status">غير مرتبط</span>
+      </section>
       <div class="columns">
         <section class="chat-panel">
           <div class="panel-header"><h2>المحادثة والتحليل</h2><button id="newRun" type="button" class="small-button">＋ مهمة جديدة</button></div>

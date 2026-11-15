@@ -197,32 +197,118 @@ const localDeviceCommands = new Map([
   ["امسح كاش dns", "flush-dns"],
 ]);
 
+const LOCAL_DEVICE_URL = "http://127.0.0.1:17849";
+const DEVICE_TOKEN_KEY = "star_ai_pair_token";
+const DEVICE_TARGET_KEY = "star_ai_pair_target";
+const DEVICE_REMOTE_URL_KEY = "star_ai_remote_url";
+
+function safeTailnetEndpoint(raw) {
+  const url = new URL(String(raw || "").trim());
+  const labels = url.hostname.toLowerCase().split(".");
+  if (url.protocol !== "https:" || labels.length < 4 || !url.hostname.toLowerCase().endsWith(".ts.net") ||
+      !labels.every(label => /^[a-z0-9-]+$/i.test(label)) ||
+      url.username || url.password || url.port || url.search || url.hash || url.pathname !== "/") {
+    throw new Error("أدخل رابط Tailscale HTTPS الخاص باللابتوب فقط، دون مسار أو معاملات.");
+  }
+  return url.origin;
+}
+
+function deviceEndpoint() {
+  if ($("deviceMode").value === "local") return LOCAL_DEVICE_URL;
+  return safeTailnetEndpoint($("deviceRemoteUrl").value);
+}
+function deviceStatus(message) {
+  $("deviceStatus").textContent = message;
+}
+function disconnectDevice() {
+  sessionStorage.removeItem(DEVICE_TOKEN_KEY);
+  sessionStorage.removeItem(DEVICE_TARGET_KEY);
+  deviceStatus("غير مرتبط");
+}
+function renderDeviceMode() {
+  const remote = $("deviceMode").value === "remote";
+  $("deviceRemoteUrl").classList.toggle("hidden", !remote);
+  if (remote && !$("deviceRemoteUrl").value) {
+    $("deviceRemoteUrl").value = sessionStorage.getItem(DEVICE_REMOTE_URL_KEY) || "";
+  }
+  deviceStatus("غير مرتبط — اختر ربط للاختبار");
+}
+function pairingTokenFor(endpoint) {
+  if (sessionStorage.getItem(DEVICE_TARGET_KEY) !== endpoint) disconnectDevice();
+  let token = sessionStorage.getItem(DEVICE_TOKEN_KEY);
+  if (!token) {
+    const instructions = endpoint === LOCAL_DEVICE_URL
+      ? "افتح http://127.0.0.1:17849/ على اللابتوب وانسخ رمز الربط الآمن:"
+      : "افتح رابط Tailscale نفسه في Safari على الآيفون، وانسخ رمز الربط من صفحة STAR AI:";
+    token = window.prompt(instructions)?.trim();
+    if (!token) return null;
+    if (token.length < 30 || token.length > 200) throw new Error("صيغة رمز الربط غير صحيحة");
+    sessionStorage.setItem(DEVICE_TOKEN_KEY, token);
+    sessionStorage.setItem(DEVICE_TARGET_KEY, endpoint);
+  }
+  return token;
+}
+
+$("deviceMode").addEventListener("change", () => {
+  disconnectDevice();
+  renderDeviceMode();
+});
+$("deviceForget").addEventListener("click", disconnectDevice);
+$("deviceConnect").addEventListener("click", async () => {
+  try {
+    const endpoint = deviceEndpoint();
+    if ($("deviceMode").value === "remote") sessionStorage.setItem(DEVICE_REMOTE_URL_KEY, endpoint);
+    const token = pairingTokenFor(endpoint);
+    if (!token) return;
+    deviceStatus("جارٍ التحقق من اللابتوب...");
+    const res = await fetch(endpoint + "/device-status", {
+      headers: {"X-Star-Token": token}, cache: "no-store"
+    });
+    if (res.status === 403) { disconnectDevice(); throw new Error("رُفض الربط: تحقق من الرمز وهوية Tailscale"); }
+    if (!res.ok) throw new Error("فشل اتصال اللابتوب: HTTP " + res.status);
+    const status = await res.json();
+    if (status.status !== "paired") throw new Error("استجابة الجهاز غير متوقعة");
+    deviceStatus(status.mode === "remote" ? "متصل باللابتوب عبر Tailscale" : "متصل باللابتوب محليًا");
+  } catch (error) {
+    deviceStatus("تعذر الاتصال");
+    toast(error.message || "تعذر اختبار الربط");
+  }
+});
+renderDeviceMode();
+
 async function askLocalDevice(action) {
-  // The pairing secret is shown only by the local STAR AI page. Never put it in a URL.
-  let pairingToken = sessionStorage.getItem("star_ai_pair_token");
-  if (!pairingToken) {
-    pairingToken = window.prompt(
-      "افتح http://127.0.0.1:17849/ على جهاز Windows واضغط «نسخ رمز الربط الآمن»، ثم الصقه هنا:"
-    )?.trim();
-    if (!pairingToken) return "أُلغي الربط. لم يُرسل أي أمر إلى الجهاز.";
-    sessionStorage.setItem("star_ai_pair_token", pairingToken);
+  let endpoint;
+  try { endpoint = deviceEndpoint(); }
+  catch (error) { return error.message; }
+  const remote = $("deviceMode").value === "remote";
+  const token = pairingTokenFor(endpoint);
+  if (!token) return "أُلغي الربط. لم يُرسل أي أمر إلى الجهاز.";
+  const sensitive = action !== "status" && action !== "diagnostics";
+  // A remote user explicitly confirms the action on their phone; local
+  // actions still require a separate Windows desktop confirmation.
+  if (remote && sensitive && !window.confirm("هل توافق على تنفيذ هذا الإجراء على اللابتوب؟\n" + action)) {
+    return "ألغيت الإجراء قبل إرساله إلى اللابتوب.";
   }
   try {
-    const response = await fetch("http://127.0.0.1:17849/device-action", {
+    const response = await fetch(endpoint + "/device-action", {
       method: "POST",
-      headers: {"Content-Type": "application/json", "X-Star-Token": pairingToken},
-      body: JSON.stringify({action}),
-      cache: "no-store",
+      headers: {"Content-Type": "application/json", "X-Star-Token": token},
+      body: JSON.stringify({action, approved: remote && sensitive}),
+      cache: "no-store"
     });
     if (response.status === 403) {
-      sessionStorage.removeItem("star_ai_pair_token");
-      return "رُفض الربط. افتح صفحة STAR AI المحلية وانسخ رمز الربط الحالي.";
+      disconnectDevice();
+      return "رُفض الربط. تحقق من رمز STAR AI وحساب Tailscale.";
     }
     if (response.status === 409) return "يوجد طلب جهاز قيد التنفيذ.";
-    if (!response.ok) return "تعذر تنفيذ الطلب على الجهاز.";
+    if (!response.ok) return "تعذر تنفيذ الطلب على الجهاز (HTTP " + response.status + ").";
+    deviceStatus(remote ? "متصل باللابتوب عبر Tailscale" : "متصل باللابتوب محليًا");
     return (await response.json()).reply;
   } catch {
-    return "تعذر الاتصال بـ STAR AI المحلي؛ شغّل الخدمة على Windows وتحقق من سماح المتصفح بالاتصال المحلي.";
+    deviceStatus("الجهاز غير متصل");
+    return remote
+      ? "فشل الوصول إلى اللابتوب عبر Tailscale. تحقق من اتصال VPN وتشغيل STAR AI على Windows."
+      : "فشل الوصول إلى STAR AI المحلي. شغّل البرنامج على نفس اللابتوب.";
   }
 }
 
