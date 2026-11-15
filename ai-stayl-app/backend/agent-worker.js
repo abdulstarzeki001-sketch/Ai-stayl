@@ -240,6 +240,7 @@ async function chooseDeviceAction(question, env) {
     {role: "system", content: [
       "Classify the current user's request. Output exactly one lowercase label.",
       "If asked to perform a single action on this Windows device, choose: notepad (open Notepad), calculator (open Calculator), explorer (open File Explorer), powershell (open PowerShell), kali (read Kali username and kernel only), status (read the Windows version).",
+      "Direct requests to open or launch an installed Kali terminal or Kali window (for example افتح نافذة جديدة كالي) are kali-terminal.",
       "Other supported labels: terminal (open Windows Terminal), kali-terminal (open the Kali Linux terminal without running a command), troubleshoot (open Windows troubleshooting settings).",
       "Use diagnostics when the user asks for Windows diagnostics or describes a current computer problem such as slowness, disk space or connectivity. Use advice for conceptual computer support or troubleshooting guidance without inspecting the user's device.",
       "If asked to take a device action outside that list, execute code or commands, act on a website, or perform multiple actions, output unsupported.",

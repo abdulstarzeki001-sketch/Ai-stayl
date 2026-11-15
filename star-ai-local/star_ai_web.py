@@ -105,10 +105,10 @@ def run_support_action(action):
         return "تعذّر العثور على Windows Terminal."
     command = [terminal, "new-tab"]
     if action == "kali-terminal":
-        command.extend(["wsl.exe", "--distribution", "kali-linux"])
+        command = [terminal, "-w", "-1", "new-tab", "wsl.exe", "--distribution", "kali-linux"]
     subprocess.Popen(command, shell=False)
     star_ai.audit("executed", f"device:{action}")
-    return "تم إرسال طلب فتح Kali في Windows Terminal." if action == "kali-terminal" else "تم إرسال طلب فتح Windows Terminal."
+    return "تم إرسال طلب فتح Kali في نافذة Windows Terminal جديدة." if action == "kali-terminal" else "تم إرسال طلب فتح Windows Terminal."
 
 
 class Handler(BaseHTTPRequestHandler):

@@ -189,6 +189,7 @@ const localDeviceCommands = new Map([
   ["/diagnostics", "diagnostics"],
   ["افتح ترمنال", "terminal"],
   ["افتح كالي", "kali-terminal"],
+  ["افتح نافذة جديدة كالي", "kali-terminal"],
   ["افتح استكشاف الاخطاء", "troubleshoot"],
   ["/flush-dns", "flush-dns"],
   ["امسح كاش dns", "flush-dns"],
@@ -219,7 +220,11 @@ $("questionForm").addEventListener("submit", async e => {
     const normalized = question.toLowerCase().replace(/[أإآ]/g, "ا");
     const describesDeviceIssue = /(?:حاسبي|حاسوبي|جهازي|كمبيوتري|اللابتوب عندي).{0,45}(?:بطي|يعلق|يهنق|يطف|يتجمد|ما يشتغل)/u.test(normalized)
       || /(?:افحص|شخّص|شخص)\s+(?:حاسبي|حاسوبي|جهازي|كمبيوتري|اللابتوب)/u.test(normalized);
-    let action = localDeviceCommands.get(normalized) || (describesDeviceIssue ? "diagnostics" : null);
+    const opensKali = /^(?:ممكن\s+|اريد\s+|لا[،,]?\s+عندي\s+كالي(?:\s+لينكس)?\s+بس\s+)?(?:قوم\s+ب\s*)?(?:(?:افتح|شغّل|شغل)\s+(?:(?:لي|لنا)\s+)?(?:(?:(?:نافذة|طرفية|ترمنال)\s+(?:جديدة\s+)?(?:لـ?\s*)?)?كالي(?:\s+لينكس)?(?:\s+(?:بنافذة\s+جديدة|في\s+نافذة\s+جديدة))?))[.!؟?]*$/u.test(normalized)
+      || /^لا[،,]?\s+عندي\s+كالي(?:\s+لينكس)?\s+بس\s+قوم\s+ب\s*فتحه[.!؟?]*$/u.test(normalized);
+    let action = localDeviceCommands.get(normalized)
+      || (opensKali ? "kali-terminal" : null)
+      || (describesDeviceIssue ? "diagnostics" : null);
     if (!action) {
       const route = await api("route-device", {question});
       action = route.deviceAction;
