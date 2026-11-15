@@ -35,6 +35,17 @@ DEVICE_ACTIONS = {
 }
 DEVICE_LOCK = threading.Lock()
 
+# Optional private Tailscale Serve access; both values must be configured
+# by the Windows setup script. Public tunnels / Funnel are not supported.
+TAILSCALE_HOST = os.environ.get("STAR_AI_TAILSCALE_HOST", "").strip().lower().rstrip(".")
+TAILSCALE_LOGIN = os.environ.get("STAR_AI_TAILSCALE_LOGIN", "").strip().lower()
+if bool(TAILSCALE_HOST) != bool(TAILSCALE_LOGIN):
+    raise RuntimeError("Tailscale access requires both STAR_AI_TAILSCALE_HOST and STAR_AI_TAILSCALE_LOGIN")
+if TAILSCALE_HOST and (not TAILSCALE_HOST.endswith(".ts.net")
+                      or "/" in TAILSCALE_HOST or ":" in TAILSCALE_HOST):
+    raise RuntimeError("Tailscale host must be an exact *.ts.net hostname")
+
+
 
 TOKEN = secrets.token_urlsafe(32)
 LOCK = threading.Lock()
@@ -169,23 +180,47 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("X-Frame-Options", "DENY")
         origin = self.headers.get("Origin")
-        if self.path == "/device-action" and origin in DEVICE_ORIGINS:
+        if self.path in {"/device-action", "/device-status"} and self.device_origin_allowed():
             self.send_header("Access-Control-Allow-Origin", origin)
             self.send_header("Vary", "Origin")
             if self.command == "OPTIONS":
-                self.send_header("Access-Control-Allow-Methods", "POST")
+                self.send_header("Access-Control-Allow-Methods", "GET, POST")
                 self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Star-Token")
                 if self.headers.get("Access-Control-Request-Private-Network") == "true":
                     self.send_header("Access-Control-Allow-Private-Network", "true")
         self.end_headers()
         self.wfile.write(data)
 
+    def is_remote_request(self):
+        host = str(self.headers.get("Host", "")).lower()
+        return bool(self.headers.get("Tailscale-User-Login")) or (
+            bool(TAILSCALE_HOST) and host in {TAILSCALE_HOST, TAILSCALE_HOST + ":443"}
+        )
+
+    def trusted_request(self):
+        host = str(self.headers.get("Host", "")).lower()
+        if self.is_remote_request():
+            # Tailscale Serve injects this identity header after stripping
+            # any client-supplied spoofed header. Never use Tailscale Funnel.
+            login = str(self.headers.get("Tailscale-User-Login", "")).lower()
+            return (bool(TAILSCALE_HOST and TAILSCALE_LOGIN)
+                    and secrets.compare_digest(login, TAILSCALE_LOGIN)
+                    and host in {TAILSCALE_HOST, TAILSCALE_HOST + ":443", self.server.host})
+        return host == self.server.host
+
     def authorized(self):
-        return (self.headers.get("Host") == self.server.host
+        return (self.trusted_request()
                 and secrets.compare_digest(self.headers.get("X-Star-Token", ""), TOKEN))
 
+    def page_origin(self):
+        if not self.trusted_request():
+            return None
+        if self.is_remote_request():
+            return "https://" + TAILSCALE_HOST
+        return f"http://{self.server.host}"
+
     def do_GET(self):
-        if self.headers.get("Host") != self.server.host:
+        if not self.trusted_request():
             self.send(403)
         elif self.path == "/":
             self.send(200, PAGE.replace("__STAR_TOKEN__", TOKEN), "text/html")
@@ -193,11 +228,15 @@ class Handler(BaseHTTPRequestHandler):
             with LOCK:
                 payload = json.dumps(state, ensure_ascii=False)
             self.send(200, payload, "application/json")
+        elif self.path == "/device-status" and self.device_authenticated():
+            self.send(200, json.dumps({"status": "paired",
+                                      "mode": "remote" if self.is_remote_request() else "local"}),
+                      "application/json")
         else:
             self.send(404)
 
     def device_origin_allowed(self):
-        return (self.headers.get("Host") == self.server.host
+        return (self.trusted_request()
                 and self.headers.get("Origin") in DEVICE_ORIGINS)
 
     def device_authenticated(self):
@@ -205,8 +244,10 @@ class Handler(BaseHTTPRequestHandler):
                 and secrets.compare_digest(self.headers.get("X-Star-Token", ""), TOKEN))
 
     def do_OPTIONS(self):
-        if (self.path == "/device-action" and self.device_origin_allowed()
-                and self.headers.get("Access-Control-Request-Method") == "POST"):
+        requested_method = self.headers.get("Access-Control-Request-Method")
+        if (self.path in {"/device-action", "/device-status"}
+                and self.device_origin_allowed()
+                and requested_method == ("POST" if self.path == "/device-action" else "GET")):
             self.send(204)
         else:
             self.send(403)
@@ -233,7 +274,10 @@ class Handler(BaseHTTPRequestHandler):
             tool, args = DEVICE_ACTIONS[action]
             if platform.system() != "Windows":
                 reply = "أوامر الجهاز متاحة على Windows."
-            elif action not in {"status", "diagnostics"} and not (
+            elif action not in {"status", "diagnostics"} and self.is_remote_request() and payload.get("approved") is not True:
+                star_ai.audit("denied", f"remote-device:{action}")
+                reply = "يحتاج هذا الإجراء موافقة صريحة من المستخدم على الآيفون."
+            elif action not in {"status", "diagnostics"} and not self.is_remote_request() and not (
                 ctypes.windll.user32.MessageBoxW(
                     None,
                     f"AI Stayl requests a device action:\n{action}\nAllow this action?",
@@ -243,6 +287,12 @@ class Handler(BaseHTTPRequestHandler):
             ):
                 star_ai.audit("denied", f"device:{action}")
                 reply = "تم رفض الإجراء من نافذة تأكيد Windows."
+            elif action not in {"status", "diagnostics"} and self.is_remote_request():
+                star_ai.audit("approved", f"remote-device:{action}")
+                reply = run_support_action(action) if action in {
+                    "terminal", "kali-terminal", "troubleshoot", "flush-dns",
+                    "task-manager", "resource-monitor"
+                } else star_ai.run_tool(tool, args, approve=lambda _: True)
             elif action in {"diagnostics", "terminal", "kali-terminal", "troubleshoot", "flush-dns", "task-manager", "resource-monitor"}:
                 reply = run_support_action(action)
             elif action == "status":
@@ -261,7 +311,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/device-action":
             self.device_action()
             return
-        if not self.authorized() or self.headers.get("Origin") != f"http://{self.server.host}":
+        if not self.authorized() or self.headers.get("Origin") != self.page_origin():
             self.send(403)
             return
         try:
