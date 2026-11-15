@@ -18,6 +18,12 @@ export default {
         headers: { apikey: env.SUPABASE_PUBLISHABLE_KEY, Authorization: auth }
       });
       if (!verified.ok) return new Response(JSON.stringify({ error: "جلسة غير صالحة" }), { status: 401, headers });
+      const user = await verified.json().catch(() => null);
+      if (typeof user?.id !== "string" || !user.id) return new Response(JSON.stringify({ error: "جلسة غير صالحة" }), { status: 401, headers });
+      if (env.AI_RATE_LIMITER) {
+        const { success } = await env.AI_RATE_LIMITER.limit({ key: user.id });
+        if (!success) return new Response(JSON.stringify({ error: "تم تجاوز حد الطلبات؛ حاول بعد دقيقة" }), { status: 429, headers });
+      }
       const body = await request.json();
       const messages = Array.isArray(body.messages) ? body.messages.slice(-16) : [];
       if (!messages.length || messages.some(m => !["user", "assistant"].includes(m.role) || typeof m.content !== "string" || m.content.length > 12000)) {
