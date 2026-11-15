@@ -1,4 +1,5 @@
 import ctypes
+from ctypes import wintypes
 import json
 import os
 import shutil
@@ -6,6 +7,7 @@ import subprocess
 import platform
 import secrets
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import star_ai
@@ -27,6 +29,8 @@ DEVICE_ACTIONS = {
     "terminal": ("open_terminal", {}),
     "kali-terminal": ("open_terminal", {}),
     "troubleshoot": ("open_settings", {}),
+    "task-manager": ("open_monitor", {}),
+    "resource-monitor": ("open_monitor", {}),
     "flush-dns": ("flush_dns", {}),
 }
 DEVICE_LOCK = threading.Lock()
@@ -73,14 +77,49 @@ def respond(question):
             state.update(busy=False, prompt=None)
 
 
+class MemoryStatus(ctypes.Structure):
+    _fields_ = [
+        ("length", wintypes.DWORD),
+        ("load", wintypes.DWORD),
+        ("total_physical", ctypes.c_uint64),
+        ("available_physical", ctypes.c_uint64),
+        ("total_page_file", ctypes.c_uint64),
+        ("available_page_file", ctypes.c_uint64),
+        ("total_virtual", ctypes.c_uint64),
+        ("available_virtual", ctypes.c_uint64),
+        ("available_extended_virtual", ctypes.c_uint64),
+    ]
+
+
+def read_cpu_times(kernel32):
+    times = [wintypes.FILETIME() for _ in range(3)]
+    if not kernel32.GetSystemTimes(*(ctypes.byref(value) for value in times)):
+        return None
+    return tuple((value.dwHighDateTime << 32) | value.dwLowDateTime for value in times)
+
+
 def windows_diagnostics():
     disk = shutil.disk_usage(os.environ.get("SystemDrive", "C:") + "\\")
-    values = [f"Windows: {platform.version()}",
+    values = [f"Windows OS build: {platform.version()}",
               f"Logical processors: {os.cpu_count() or 'unknown'}",
               f"System drive available: {disk.free / 2**30:.1f} GiB of {disk.total / 2**30:.1f} GiB"]
     kernel32 = ctypes.windll.kernel32
     kernel32.GetTickCount64.restype = ctypes.c_uint64
     values.append(f"Uptime: {kernel32.GetTickCount64() / 3600000:.1f} hours")
+    memory = MemoryStatus()
+    memory.length = ctypes.sizeof(memory)
+    if kernel32.GlobalMemoryStatusEx(ctypes.byref(memory)):
+        values.append(f"RAM available: {memory.available_physical / 2**30:.2f} GiB "
+                      f"of {memory.total_physical / 2**30:.2f} GiB ({memory.load}% used)")
+    before = read_cpu_times(kernel32)
+    if before is not None:
+        time.sleep(1)
+        after = read_cpu_times(kernel32)
+        if after is not None:
+            idle, kernel, user = (end - start for start, end in zip(before, after))
+            total = kernel + user
+            if total > 0:
+                values.append(f"CPU utilization (1-second sample): {100 * (total - idle) / total:.1f}%")
     return "\n".join(values)
 
 
@@ -88,6 +127,15 @@ def run_support_action(action):
     if action == "diagnostics":
         star_ai.audit("system_status", "device:diagnostics")
         return windows_diagnostics()
+    if action in {"task-manager", "resource-monitor"}:
+        executable, title = {
+            "task-manager": ("Taskmgr.exe", "مدير المهام"),
+            "resource-monitor": ("resmon.exe", "مراقب الموارد"),
+        }[action]
+        path = os.path.join(os.environ["SystemRoot"], "System32", executable)
+        subprocess.Popen([path], shell=False)
+        star_ai.audit("executed", f"device:{action}")
+        return f"تم إرسال طلب فتح {title}."
     if action == "troubleshoot":
         os.startfile("ms-settings:troubleshoot")
         star_ai.audit("executed", "device:troubleshoot")
@@ -181,7 +229,7 @@ class Handler(BaseHTTPRequestHandler):
             tool, args = DEVICE_ACTIONS[action]
             if platform.system() != "Windows":
                 reply = "أوامر الجهاز متاحة على Windows."
-            elif action in {"diagnostics", "terminal", "kali-terminal", "troubleshoot", "flush-dns"}:
+            elif action in {"diagnostics", "terminal", "kali-terminal", "troubleshoot", "flush-dns", "task-manager", "resource-monitor"}:
                 reply = run_support_action(action)
             elif action == "status":
                 reply = f"Windows: {platform.version()}"
