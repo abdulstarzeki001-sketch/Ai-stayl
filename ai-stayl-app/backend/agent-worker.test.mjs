@@ -350,3 +350,29 @@ test("device routing accepts only supported labels without using web sources", a
     }
   } finally { reset(); }
 });
+
+test("AI rate limiter rejects quota-exceeded authenticated requests before inference", async () => {
+  let requestedAI = false;
+  const restore = stubFetch((url, options) => authenticated(url, options));
+  try {
+    const response = await agent.fetch(req({action:"answer", question:"hello", pages:[]}), {
+      ...base,
+      AI_RATE_LIMITER: {limit: async ({key}) => {
+        assert.equal(key, "test-user");
+        return {success:false};
+      }},
+      AI: {run:async()=>{requestedAI=true;throw new Error("should not run")}}
+    });
+    assert.equal(response.status,429);
+    assert.equal(requestedAI,false);
+  } finally { restore(); }
+});
+
+test("allowed GitHub Pages origin retains authenticated request protection", async () => {
+  const restore=stubFetch((url, opts)=>authenticated(url,opts));
+  try {
+    const response=await agent.fetch(req({action:"unknown"},{origin:"https://abdulstarzeki001-sketch.github.io"}),base);
+    assert.equal(response.status,400);
+    assert.equal(response.headers.get("access-control-allow-origin"),"https://abdulstarzeki001-sketch.github.io");
+  } finally {restore();}
+});

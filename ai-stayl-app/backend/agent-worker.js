@@ -13,7 +13,10 @@ function allowedOrigin(origin) {
   try {
     const u = new URL(origin);
     return (u.protocol === "https:" &&
-      (u.hostname === "agent-ai-stayl.abdulstarzeki001.workers.dev" || u.hostname === "ai-stayl-app.pages.dev" ||
+      (u.hostname === "agent-ai-stayl.abdulstarzeki001.workers.dev" ||
+       u.hostname === "abdulstarzeki001-sketch.github.io" ||
+       u.hostname === "ai-stayl-original.pages.dev" ||
+       u.hostname === "ai-stayl-app.pages.dev" ||
        u.hostname.endsWith(".ai-stayl-app.pages.dev"))) ||
       (u.protocol === "http:" && ["localhost", "127.0.0.1"].includes(u.hostname));
   } catch { return false; }
@@ -191,14 +194,16 @@ async function webSearch(query, env = {}) {
 }
 async function verifyUser(req, env) {
   const auth = req.headers.get("authorization") || "";
-  if (!/^Bearer\s+\S+$/.test(auth)) return false;
-  if (!env.SUPABASE_URL || !env.SUPABASE_PUBLISHABLE_KEY) return false;
+  if (!/^Bearer\s+\S+$/.test(auth)) return null;
+  if (!env.SUPABASE_URL || !env.SUPABASE_PUBLISHABLE_KEY) return null;
   const r = await fetch(env.SUPABASE_URL + "/auth/v1/user", {
     method: "GET",
     headers: { Authorization: auth, apikey: env.SUPABASE_PUBLISHABLE_KEY },
     signal: AbortSignal.timeout(6000)
   });
-  return r.ok;
+  if (!r.ok) return null;
+  const user = await r.json().catch(() => null);
+  return typeof user?.id === "string" && user.id ? user : null;
 }
 function sourceList(pages) {
   if (!Array.isArray(pages)) return [];
@@ -393,7 +398,12 @@ export default {
     if (request.method !== "POST") return reply({ error: "Method not allowed" }, 405, origin);
     if (Number(request.headers.get("content-length") || "0") > 80000) return reply({ error: "Request too large" }, 413, origin);
     try {
-      if (!await verifyUser(request, env)) return reply({ error: "سجّل الدخول أولاً" }, 401, origin);
+      const user = await verifyUser(request, env);
+      if (!user) return reply({ error: "سجّل الدخول أولاً" }, 401, origin);
+      if (env.AI_RATE_LIMITER) {
+        const { success } = await env.AI_RATE_LIMITER.limit({ key: user.id });
+        if (!success) return reply({ error: "تجاوزت حد الطلبات المؤقت؛ حاول بعد دقيقة" }, 429, origin);
+      }
       const body = await request.json();
       if (!body || typeof body !== "object") return reply({ error: "Invalid body" }, 400, origin);
       if (body.action === "route-device") return reply(await chooseDeviceAction(body.question, env), 200, origin);
@@ -415,7 +425,8 @@ export default {
       return reply({ error: "Unknown action" }, 400, origin);
     } catch (error) {
       const m = String(error?.message || error);
-      return reply({ error: m.slice(0, 180) }, /غير مسموح|المطلوب|required|Invalid|غير صحيح|مطلوب|أدخل/.test(m) ? 400 : 502, origin);
+      const invalidInput = /غير مسموح|المطلوب|required|Invalid|غير صحيح|مطلوب|أدخل/.test(m);
+      return reply({ error: invalidInput ? m.slice(0, 180) : "تعذّر تنفيذ الطلب. حاول مجدداً." }, invalidInput ? 400 : 502, origin);
     }
   }
 };
