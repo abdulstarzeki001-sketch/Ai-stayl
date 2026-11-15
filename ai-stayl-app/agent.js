@@ -191,6 +191,8 @@ const localDeviceCommands = new Map([
   ["افتح كالي", "kali-terminal"],
   ["افتح نافذة جديدة كالي", "kali-terminal"],
   ["افتح استكشاف الاخطاء", "troubleshoot"],
+  ["افتح مدير المهام", "task-manager"],
+  ["افتح مراقب الموارد", "resource-monitor"],
   ["/flush-dns", "flush-dns"],
   ["امسح كاش dns", "flush-dns"],
 ]);
