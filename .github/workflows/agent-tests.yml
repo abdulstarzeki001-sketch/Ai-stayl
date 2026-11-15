@@ -7,11 +7,17 @@ on:
       - 'feature/agent-browser-research-*'
     paths:
       - 'ai-stayl-app/backend/**'
+      - 'ai-stayl-app/agent.js'
+      - 'ai-stayl-app/agent.html'
+      - 'ai-stayl-app/agent.css'
       - 'star-ai-local/**'
       - '.github/workflows/agent-tests.yml'
   pull_request:
     paths:
       - 'ai-stayl-app/backend/**'
+      - 'ai-stayl-app/agent.js'
+      - 'ai-stayl-app/agent.html'
+      - 'ai-stayl-app/agent.css'
       - 'star-ai-local/**'
       - '.github/workflows/agent-tests.yml'
 jobs:
