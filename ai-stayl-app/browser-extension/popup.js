@@ -1,4 +1,4 @@
-const APP = "https://agent-ai-stayl.abdulstarzeki001.workers.dev/agent.html";
+const APP = "https://ai-stayl-control.abdulstarzeki001.workers.dev/agent.html";
 const KEY = "ai_stayl_bridge_payload";
 const el = id => document.getElementById(id);
 const available = [];
@@ -7,7 +7,7 @@ async function load() {
   const tabs = await chrome.tabs.query({});
   el("tabs").replaceChildren();
   for (const tab of tabs) {
-    if (!/^https:\/\//i.test(tab.url || "") || (tab.url?.includes("ai-stayl-app.pages.dev") || tab.url?.includes("agent-ai-stayl.abdulstarzeki001.workers.dev"))) continue;
+    if (!/^https:\/\//i.test(tab.url || "") || (tab.url?.includes("ai-stayl-app.pages.dev") || tab.url?.includes("agent-ai-stayl.abdulstarzeki001.workers.dev") || tab.url?.includes("ai-stayl-control.abdulstarzeki001.workers.dev"))) continue;
     const row = document.createElement("div"); row.className = "tab";
     const check = document.createElement("input"); check.type = "checkbox"; check.id = "tab-" + tab.id;
     const label = document.createElement("label"); label.htmlFor = check.id; label.textContent = tab.title || tab.url;
@@ -46,7 +46,7 @@ el("capture").onclick = async () => {
   }
   if (!pages.length) { el("capture").disabled = false; return show("ماكو نص قابل للاستيراد."); }
   await chrome.storage.local.set({ [KEY]:{pages, createdAt:Date.now()} });
-  const existing = await chrome.tabs.query({ url:["https://agent-ai-stayl.abdulstarzeki001.workers.dev/agent.html*", "https://ai-stayl-app.pages.dev/agent.html*", "https://*.ai-stayl-app.pages.dev/agent.html*"] });
+  const existing = await chrome.tabs.query({ url:["https://ai-stayl-control.abdulstarzeki001.workers.dev/agent.html*", "https://ai-stayl-app.pages.dev/agent.html*", "https://*.ai-stayl-app.pages.dev/agent.html*"] });
   if (existing.length) await chrome.tabs.update(existing[0].id,{active:true});
   else await chrome.tabs.create({url:APP,active:true});
   show("تم تجهيز " + pages.length + " صفحات للتحليل. افتح Agent.");
