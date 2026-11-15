@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.0";
 
 const SUPABASE_URL = "https://ruosabdszffqdobeqgmz.supabase.co";
 const SUPABASE_KEY = "sb_publishable_1PPYe8Tod6yDvegWzv5p-g_EIgu9zgE";
-const API_URL = "https://agent-ai-stayl.abdulstarzeki001.workers.dev";
+const API_URL = "https://ai-stayl-control.abdulstarzeki001.workers.dev";
 const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = id => document.getElementById(id);
 let user = null, sources = [], busy = false, lastResults = [], chatTurns = [];
