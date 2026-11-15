@@ -1,4 +1,8 @@
+import ctypes
 import json
+import os
+import shutil
+import subprocess
 import platform
 import secrets
 import threading
@@ -19,6 +23,11 @@ DEVICE_ACTIONS = {
     "powershell": ("open_app", {"app": "powershell"}),
     "kali": ("kali_status", {}),
     "status": ("system_status", {}),
+    "diagnostics": ("system_status", {}),
+    "terminal": ("open_terminal", {}),
+    "kali-terminal": ("open_terminal", {}),
+    "troubleshoot": ("open_settings", {}),
+    "flush-dns": ("flush_dns", {}),
 }
 DEVICE_LOCK = threading.Lock()
 
@@ -62,6 +71,44 @@ def respond(question):
             db.close()
         with LOCK:
             state.update(busy=False, prompt=None)
+
+
+def windows_diagnostics():
+    disk = shutil.disk_usage(os.environ.get("SystemDrive", "C:") + "\\")
+    values = [f"Windows: {platform.version()}",
+              f"Logical processors: {os.cpu_count() or 'unknown'}",
+              f"System drive available: {disk.free / 2**30:.1f} GiB of {disk.total / 2**30:.1f} GiB"]
+    kernel32 = ctypes.windll.kernel32
+    kernel32.GetTickCount64.restype = ctypes.c_uint64
+    values.append(f"Uptime: {kernel32.GetTickCount64() / 3600000:.1f} hours")
+    return "\n".join(values)
+
+
+def run_support_action(action):
+    if action == "diagnostics":
+        star_ai.audit("system_status", "device:diagnostics")
+        return windows_diagnostics()
+    if action == "troubleshoot":
+        os.startfile("ms-settings:troubleshoot")
+        star_ai.audit("executed", "device:troubleshoot")
+        return "تم طلب فتح إعدادات استكشاف الأخطاء في Windows."
+    if action == "flush-dns":
+        cmd = os.path.join(os.environ["SystemRoot"], "System32", "ipconfig.exe")
+        result = subprocess.run([cmd, "/flushdns"], capture_output=True, timeout=15,
+                                creationflags=subprocess.CREATE_NO_WINDOW)
+        star_ai.audit("executed", f"device:flush-dns exit:{result.returncode}")
+        if result.returncode != 0:
+            return "تعذّر مسح ذاكرة DNS. تحقّق من صلاحيات حساب Windows."
+        return "تم مسح ذاكرة DNS في Windows."
+    terminal = shutil.which("wt.exe")
+    if not terminal:
+        return "تعذّر العثور على Windows Terminal."
+    command = [terminal, "new-tab"]
+    if action == "kali-terminal":
+        command.extend(["wsl.exe", "--distribution", "kali-linux"])
+    subprocess.Popen(command, shell=False)
+    star_ai.audit("executed", f"device:{action}")
+    return "تم إرسال طلب فتح Kali في Windows Terminal." if action == "kali-terminal" else "تم إرسال طلب فتح Windows Terminal."
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -134,6 +181,8 @@ class Handler(BaseHTTPRequestHandler):
             tool, args = DEVICE_ACTIONS[action]
             if platform.system() != "Windows":
                 reply = "أوامر الجهاز متاحة على Windows."
+            elif action in {"diagnostics", "terminal", "kali-terminal", "troubleshoot", "flush-dns"}:
+                reply = run_support_action(action)
             elif action == "status":
                 reply = f"Windows: {platform.version()}"
                 star_ai.audit("system_status", "device:version")

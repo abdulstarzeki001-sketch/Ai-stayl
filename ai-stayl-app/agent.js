@@ -186,6 +186,12 @@ const localDeviceCommands = new Map([
   ["افتح powershell", "powershell"],
   ["/kali", "kali"],
   ["/status", "status"],
+  ["/diagnostics", "diagnostics"],
+  ["افتح ترمنال", "terminal"],
+  ["افتح كالي", "kali-terminal"],
+  ["افتح استكشاف الاخطاء", "troubleshoot"],
+  ["/flush-dns", "flush-dns"],
+  ["امسح كاش dns", "flush-dns"],
 ]);
 
 async function askLocalDevice(action) {
@@ -216,10 +222,23 @@ $("questionForm").addEventListener("submit", async e => {
       action = route.deviceAction;
     }
     if (action === "unsupported") {
-      message("assistant", "أقدر أفتح المفكرة والحاسبة ومستكشف الملفات وPowerShell، وأفحص إصدار Windows ومعلومات Kali.");
+      message("assistant", "أقدر أفحص Windows وأحلّل المشكلة وأفتح التطبيقات وWindows Terminal وKali وإعدادات استكشاف الأخطاء.");
       return;
     }
-    if ([...localDeviceCommands.values()].includes(action)) {
+    if (action === "diagnostics" || action === "advice") {
+      let diagnostics = "";
+      if (action === "diagnostics") {
+        setBusy(true, "جارٍ فحص الجهاز");
+        diagnostics = await askLocalDevice("diagnostics");
+        message("assistant", diagnostics);
+      }
+      setBusy(true, "جارٍ تحليل المشكلة");
+      const support = await api("computer-support", {question, diagnostics, mode: $("agentMode").value});
+      message("assistant", support.reply);
+      return;
+    }
+    if ([...localDeviceCommands.values()].includes(action) && action !== "flush-dns"
+        || action === "flush-dns" && localDeviceCommands.get(question.toLowerCase()) === "flush-dns") {
       setBusy(true, "جارٍ التنفيذ على الجهاز");
       message("assistant", await askLocalDevice(action));
       return;
