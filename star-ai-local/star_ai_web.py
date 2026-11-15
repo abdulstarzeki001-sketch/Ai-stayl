@@ -16,6 +16,7 @@ PAGE = (star_ai.BASE / "chat_ar.html").read_text(encoding="utf-8")
 PORT = 17849
 DEVICE_ORIGINS = {
     "https://agent-ai-stayl.abdulstarzeki001.workers.dev",
+    "https://ai-stayl-control.abdulstarzeki001.workers.dev",
     "https://abdulstarzeki001-sketch.github.io",
 }
 DEVICE_ACTIONS = {
