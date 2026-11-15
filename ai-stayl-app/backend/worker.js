@@ -9,6 +9,9 @@ export default {
     if (request.method === "OPTIONS") return new Response(null, { headers });
     if (request.method !== "POST") return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers });
     try {
+      if (Number(request.headers.get("Content-Length") || "0") > 200000) {
+        return new Response(JSON.stringify({ error: "Request too large" }), { status: 413, headers });
+      }
       const auth = request.headers.get("Authorization") || "";
       if (!auth.startsWith("Bearer ")) return new Response(JSON.stringify({ error: "سجّل الدخول أولاً" }), { status: 401, headers });
       const verified = await fetch(env.SUPABASE_URL + "/auth/v1/user", {
@@ -26,7 +29,8 @@ export default {
       });
       return new Response(JSON.stringify({ reply: result.response || "لم يصل رد" }), { headers });
     } catch (error) {
-      return new Response(JSON.stringify({ error: "تعذر تنفيذ الطلب", detail: String(error).slice(0, 180) }), { status: 500, headers });
+      console.error("AI worker request failed", error instanceof Error ? error.name : "UnknownError");
+      return new Response(JSON.stringify({ error: "تعذر تنفيذ الطلب" }), { status: 500, headers });
     }
   }
 };
