@@ -216,7 +216,10 @@ $("questionForm").addEventListener("submit", async e => {
   message("user", question); $("question").value = "";
   setBusy(true, "جارٍ فهم الطلب");
   try {
-    let action = localDeviceCommands.get(question.toLowerCase().replace(/[أإآ]/g, "ا"));
+    const normalized = question.toLowerCase().replace(/[أإآ]/g, "ا");
+    const describesDeviceIssue = /(?:حاسبي|حاسوبي|جهازي|كمبيوتري|اللابتوب عندي).{0,45}(?:بطي|يعلق|يهنق|يطف|يتجمد|ما يشتغل)/u.test(normalized)
+      || /(?:افحص|شخّص|شخص)\s+(?:حاسبي|حاسوبي|جهازي|كمبيوتري|اللابتوب)/u.test(normalized);
+    let action = localDeviceCommands.get(normalized) || (describesDeviceIssue ? "diagnostics" : null);
     if (!action) {
       const route = await api("route-device", {question});
       action = route.deviceAction;
