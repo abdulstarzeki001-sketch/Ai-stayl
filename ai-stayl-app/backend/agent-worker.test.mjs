@@ -376,3 +376,5 @@ test("allowed GitHub Pages origin retains authenticated request protection", asy
     assert.equal(response.headers.get("access-control-allow-origin"),"https://abdulstarzeki001-sketch.github.io");
   } finally {restore();}
 });
+
+test("new dedicated AI Stayl control origin is CORS allowed", async()=>{const response=await agent.fetch(new Request("https://worker.example/health",{headers:{origin:"https://ai-stayl-control.abdulstarzeki001.workers.dev"}}),base);assert.equal(response.status,200);assert.equal(response.headers.get("access-control-allow-origin"),"https://ai-stayl-control.abdulstarzeki001.workers.dev");});
