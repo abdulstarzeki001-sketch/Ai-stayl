@@ -13,7 +13,7 @@ function allowedOrigin(origin) {
   try {
     const u = new URL(origin);
     return (u.protocol === "https:" &&
-      (u.hostname === "agent-ai-stayl.abdulstarzeki001.workers.dev" ||
+      (u.hostname === "ai-stayl-control.abdulstarzeki001.workers.dev" || u.hostname === "agent-ai-stayl.abdulstarzeki001.workers.dev" ||
        u.hostname === "abdulstarzeki001-sketch.github.io" ||
        u.hostname === "ai-stayl-original.pages.dev" ||
        u.hostname === "ai-stayl-app.pages.dev" ||
