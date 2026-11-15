@@ -210,7 +210,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def authorized(self):
         return (self.trusted_request()
-                and secrets.compare_digest(self.headers.get("X-Star-Token", ""), TOKEN))
+                and secrets.compare_digest(str(self.headers.get("X-Star-Token") or ""), TOKEN))
 
     def page_origin(self):
         if not self.trusted_request():
@@ -241,7 +241,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def device_authenticated(self):
         return (self.device_origin_allowed()
-                and secrets.compare_digest(self.headers.get("X-Star-Token", ""), TOKEN))
+                and secrets.compare_digest(str(self.headers.get("X-Star-Token") or ""), TOKEN))
 
     def do_OPTIONS(self):
         requested_method = self.headers.get("Access-Control-Request-Method")
